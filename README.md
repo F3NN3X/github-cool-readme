@@ -19,8 +19,16 @@ Repos you can no longer access (e.g. a former employer's) can't be counted.
 
 ## Setup
 
+With [gh](https://cli.github.com) logged in, run:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/pedrocatalao/github-cool-readme/main/setup.sh)
+```
+
+It asks before each change (`--dry-run` changes nothing), and does the steps below. To do them by hand:
+
 1. Create a classic personal access token with the `repo` and `read:org` scopes. If an organization uses SAML SSO, authorize the token for it.
-2. In your profile repo, add it as the secret `CARDS_TOKEN`, copy [examples/profile-workflow.yml](examples/profile-workflow.yml) to `.github/workflows/cards.yml`, and optionally add a `cool-readme.yml` (see below).
+2. In your profile repo, add it as the secret `CARDS_TOKEN`, copy [examples/profile-workflow.yml](examples/profile-workflow.yml) to `.github/workflows/cool-readme.yml`, and optionally add a `cool-readme.yml` (see below).
 3. Run the workflow once, then put the cards in your README:
 
 ```html

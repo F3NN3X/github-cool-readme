@@ -21,7 +21,6 @@ describe('summary', () => {
     expect(row(m, 'pullRequests')).toEqual([5, 9]);
     expect(row(m, 'issues')).toEqual([1, 2]);
     expect(row(m, 'reviews')).toEqual([1, 1]);
-    expect(row(m, 'repos')).toEqual([7, 9]);
     expect(m.summary.stars).toEqual({ last12Months: 23, allTime: 123 }); // forks excluded
     expect(m.summary.activity).toEqual({ activeDays: 6, totalDays: 10, percent: 60 });
   });

@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const data = require('@primer/octicons/build/data.json') as Record<string, { heights: Record<string, { path: string }> }>;
 
-export type IconName = 'git-commit' | 'git-pull-request' | 'code-review' | 'issue-opened' | 'repo' | 'star' | 'star-fill';
+export type IconName = 'git-commit' | 'git-pull-request' | 'code-review' | 'issue-opened' | 'star' | 'star-fill';
 
 /** A 16x16 octicon at (x, y), scaled to `size`. */
 export function icon(name: IconName, x: number, y: number, size = 16, cls = 'icon'): string {

@@ -1,7 +1,7 @@
 import { repoKey, type Config } from './config.ts';
 import type { ContributionWindow, Snapshot } from './types.ts';
 
-export type CountKey = 'commits' | 'pullRequests' | 'reviews' | 'issues' | 'repos';
+export type CountKey = 'commits' | 'pullRequests' | 'reviews' | 'issues';
 
 export interface SummaryModel {
   title: string | null;
@@ -39,10 +39,9 @@ export interface Model {
 
 const ROW_LABELS: Record<CountKey, string> = {
   commits: 'Commits',
-  pullRequests: 'Pull requests',
-  reviews: 'Reviews',
+  pullRequests: 'PRs created',
+  reviews: 'PRs reviewed',
   issues: 'Issues',
-  repos: 'Repos contributed to',
 };
 
 const FIELDS = ['commits', 'pullRequests', 'reviews', 'issues'] as const;
@@ -69,21 +68,18 @@ export function compute(snapshot: Snapshot, config: Config): Model {
   // Summary: both columns from the contributions API, only the time window differs.
   const filtering = !include.private || !include.orgs;
   const counts = (windows: ContributionWindow[]) => {
-    const sums: Record<CountKey, number> = { commits: 0, pullRequests: 0, reviews: 0, issues: 0, repos: 0 };
-    const repos = new Set<string>();
+    const sums: Record<CountKey, number> = { commits: 0, pullRequests: 0, reviews: 0, issues: 0 };
     for (const w of windows) {
       const listed = { commits: 0, pullRequests: 0, reviews: 0, issues: 0 };
       for (const [key, c] of Object.entries(w.byRepo)) {
         for (const f of FIELDS) listed[f] += c[f];
         if (!included(key)) continue;
         for (const f of FIELDS) sums[f] += c[f];
-        if (c.commits + c.pullRequests + c.reviews + c.issues > 0) repos.add(key);
       }
       // GitHub lists at most 100 repos per type and window; the rest only shows in the totals.
       // That rest can be counted only when nothing is filtered out.
       if (!filtering) for (const f of FIELDS) sums[f] += Math.max(0, w.totals[f] - listed[f]);
     }
-    sums.repos = repos.size;
     return sums;
   };
   const last12 = counts([snapshot.last12Months]);

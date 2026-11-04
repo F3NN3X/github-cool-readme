@@ -8,7 +8,6 @@ const ICONS: Record<CountKey, IconName> = {
   pullRequests: 'git-pull-request',
   reviews: 'code-review',
   issues: 'issue-opened',
-  repos: 'repo',
 };
 
 const WIDTH = 480;

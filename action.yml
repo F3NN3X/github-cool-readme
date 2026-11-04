@@ -1,0 +1,31 @@
+name: Cool README cards
+description: Generates animated SVG stat cards for a GitHub profile README
+inputs:
+  token:
+    description: Classic personal access token with the repo and read:org scopes
+    required: true
+  config:
+    description: Path to the settings file
+    default: cool-readme.yml
+  output:
+    description: Directory to write the SVGs to
+    default: stats
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+    - name: Install
+      shell: bash
+      run: npm ci --omit=dev --no-audit --no-fund --prefix "$GITHUB_ACTION_PATH"
+    - name: Generate cards
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        CONFIG: ${{ inputs.config }}
+        OUTPUT: ${{ inputs.output }}
+      run: |
+        args=(--out "$OUTPUT")
+        if [ -f "$CONFIG" ]; then args+=(--config "$CONFIG"); fi
+        node "$GITHUB_ACTION_PATH/src/cli.ts" "${args[@]}"

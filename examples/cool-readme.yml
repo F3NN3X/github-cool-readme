@@ -1,0 +1,12 @@
+user: pedrocatalao
+include:
+  private: true
+  orgs: true
+languages:
+  count: 6
+  exclude: [Batchfile, PHP]
+  excludeRepos: [juca]
+contributions:
+  count: 6
+  includeOpen: true
+  hide: [anuraghazra/github-readme-stats]

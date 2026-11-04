@@ -97,18 +97,18 @@ fi
 # --- Token --------------------------------------------------------------------------------
 
 step "Token"
-info "The workflow needs a classic personal access token with the \"repo\" and \"read:org\" scopes,"
+info "The workflow needs a classic personal access token with the \"repo\", \"read:org\" and \"read:user\" scopes,"
 info "so the cards can count your private and organization work. It is stored as the secret $SECRET."
 set_token=true
 if gh secret list -R "$PROFILE" 2>/dev/null | awk '{print $1}' | grep -qx "$SECRET"; then
-  info "$SECRET is already set."
+  info "$SECRET is already set. If it lacks the read:user scope, add it on GitHub (the token value stays the same)."
   ask "Replace it?" n || set_token=false
 fi
 if $set_token && $DRY_RUN; then
   info "(dry run) would ask for a token and store it as $SECRET"
 elif $set_token; then
   $HAVE_TTY || die "pasting the token needs a terminal; run this script in one"
-  url="https://github.com/settings/tokens/new?scopes=repo,read:org&description=README%20cards%20($PROFILE)"
+  url="https://github.com/settings/tokens/new?scopes=repo,read:org,read:user&description=README%20cards%20($PROFILE)"
   info "Create one here (scopes are filled in; pick an expiry, then Generate token):"
   info "$url"
   if command -v open >/dev/null; then open "$url"; elif command -v xdg-open >/dev/null; then xdg-open "$url" >/dev/null 2>&1 || true; fi
@@ -129,6 +129,10 @@ elif $set_token; then
          case ", $scopes," in
            *", read:org,"*|*", admin:org,"*|*", write:org,"*) ;;
            *) warn "The token lacks \"read:org\"; organization work may be missed."; ask "Use it anyway?" n || continue ;;
+         esac
+         case ", $scopes," in
+           *", read:user,"*|*", user,"*) ;;
+           *) warn "The token lacks \"read:user\"; without it GitHub hides your private work. Try again."; continue ;;
          esac ;;
     esac
     break

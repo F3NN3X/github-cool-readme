@@ -1,4 +1,4 @@
-import type { Activity, Repo, Snapshot } from '../../src/types.ts';
+import type { ContributionWindow, PullRequest, Repo, RepoCounts, Snapshot } from '../../src/types.ts';
 
 const repo = (nameWithOwner: string, extra: Partial<Repo> = {}): Repo => ({
   nameWithOwner,
@@ -11,21 +11,42 @@ const repo = (nameWithOwner: string, extra: Partial<Repo> = {}): Repo => ({
   ...extra,
 });
 
-const pr = (repo: string, createdAt: string, state: Activity['state'], mergedAt: string | null = null): Activity => ({
-  kind: 'pr',
+const pr = (repo: string, createdAt: string, state: PullRequest['state'], mergedAt: string | null = null): PullRequest => ({
   repo,
   createdAt,
   state,
   mergedAt,
 });
 
+/** A window whose totals equal what its repos add up to. */
+const window = (from: string, to: string, byRepo: Record<string, Partial<RepoCounts>>): ContributionWindow => {
+  const full: Record<string, RepoCounts> = {};
+  const totals: RepoCounts = { commits: 0, pullRequests: 0, reviews: 0, issues: 0 };
+  for (const [key, c] of Object.entries(byRepo)) {
+    full[key] = { commits: 0, pullRequests: 0, reviews: 0, issues: 0, ...c };
+    for (const f of ['commits', 'pullRequests', 'reviews', 'issues'] as const) totals[f] += full[key][f];
+  }
+  return { from, to, totals, restricted: 0, byRepo: full };
+};
+
+const year = (y: number, byRepo: Record<string, Partial<RepoCounts>>) =>
+  window(`${y}-01-01T00:00:00Z`, `${y}-12-31T23:59:59Z`, byRepo);
+
 /** A made-up user "octo", member of the organization "acme". */
 export function fixture(): Snapshot {
+  const y2026 = {
+    'octo/secret': { commits: 50 },
+    'acme/platform': { commits: 100, pullRequests: 1, reviews: 1 },
+    'acme/site': { issues: 1 },
+    'big/project': { pullRequests: 1 },
+    'mid/project': { pullRequests: 1 },
+    'hidden/private': { pullRequests: 1 },
+  };
+  const dec2025 = { 'octo/game': { commits: 10, pullRequests: 1 } };
   return {
-    version: 3,
+    version: 4,
     generatedAt: '2026-11-04T12:00:00Z',
     user: { login: 'octo', name: 'Octo', createdAt: '2015-03-01T00:00:00Z' },
-    last12MonthsFrom: '2025-11-05T00:00:00Z',
     orgs: ['acme'],
     repos: {
       'octo/game': repo('octo/game', {
@@ -58,12 +79,17 @@ export function fixture(): Snapshot {
     },
     ownedRepos: ['octo/game', 'octo/secret', 'octo/fork'],
     recentStars: { 'octo/game': 20, 'octo/secret': 3, 'octo/fork': 7 },
-    commits: {
-      'octo/game': { allTime: 100, last12Months: 10 },
-      'octo/secret': { allTime: 50, last12Months: 50 },
-      'acme/platform': { allTime: 200, last12Months: 100 },
-    },
-    activity: [
+    last12Months: window('2025-11-05T00:00:00Z', '2026-11-04T12:00:00Z', { ...dec2025, ...y2026 }),
+    allTime: [
+      year(2018, { 'old/archive': { pullRequests: 2 } }),
+      year(2019, { 'octo/game': { issues: 1 } }),
+      year(2020, { 'octo/game': { commits: 90 }, 'tiny/project': { pullRequests: 1 } }),
+      year(2024, { 'acme/platform': { commits: 100, pullRequests: 1 } }),
+      year(2025, dec2025),
+      year(2026, y2026),
+    ],
+    calendar: Array.from({ length: 10 }, (_, i) => ({ date: `2026-10-${String(i + 1).padStart(2, '0')}`, count: i < 4 ? 0 : i })),
+    pullRequests: [
       pr('octo/game', '2025-12-01T00:00:00Z', 'MERGED', '2025-12-02T00:00:00Z'),
       pr('acme/platform', '2024-01-01T00:00:00Z', 'MERGED', '2024-01-02T00:00:00Z'),
       pr('acme/platform', '2026-01-01T00:00:00Z', 'OPEN'),
@@ -73,11 +99,7 @@ export function fixture(): Snapshot {
       pr('old/archive', '2018-10-01T00:00:00Z', 'CLOSED'),
       pr('old/archive', '2018-11-01T00:00:00Z', 'CLOSED'),
       pr('hidden/private', '2026-02-01T00:00:00Z', 'MERGED', '2026-02-02T00:00:00Z'),
-      { kind: 'issue', repo: 'acme/site', createdAt: '2026-03-01T00:00:00Z' },
-      { kind: 'issue', repo: 'octo/game', createdAt: '2019-03-01T00:00:00Z' },
-      { kind: 'review', repo: 'acme/platform', createdAt: '2026-04-01T00:00:00Z' },
     ],
-    calendar: Array.from({ length: 10 }, (_, i) => ({ date: `2026-10-${String(i + 1).padStart(2, '0')}`, count: i < 4 ? 0 : i })),
     avatars: { big: 'data:image/png;base64,AAAA' },
   };
 }

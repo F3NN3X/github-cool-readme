@@ -2,7 +2,7 @@ name: Cool README cards
 description: Generates animated SVG stat cards for a GitHub profile README
 inputs:
   token:
-    description: Classic personal access token with the repo and read:org scopes
+    description: Classic personal access token with the repo, read:org and read:user scopes
     required: true
   config:
     description: Path to the settings file

@@ -13,12 +13,15 @@ export interface Client {
   query<T>(query: string, variables?: Record<string, unknown>): Promise<T>;
   /** Messages for parts GitHub refused to return (e.g. SAML-protected organizations). */
   warnings: string[];
+  /** The token's scopes, known after the first query; null for tokens without scopes (fine-grained, apps). */
+  scopes(): string[] | null;
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function createClient(token: string, log: (msg: string) => void = () => {}): Client {
   const warnings: string[] = [];
+  let scopes: string[] | null = null;
 
   async function query<T>(query: string, variables: Record<string, unknown> = {}): Promise<T> {
     for (let attempt = 1; ; attempt++) {
@@ -31,6 +34,8 @@ export function createClient(token: string, log: (msg: string) => void = () => {
         },
         body: JSON.stringify({ query, variables }),
       });
+      const header = res.headers.get('x-oauth-scopes');
+      if (header !== null) scopes = header.split(',').map((s) => s.trim()).filter(Boolean);
 
       const retryable = res.status >= 500 || res.status === 403 || res.status === 429;
       if (!res.ok && retryable && attempt < 4) {
@@ -58,7 +63,7 @@ export function createClient(token: string, log: (msg: string) => void = () => {
     }
   }
 
-  return { query, warnings };
+  return { query, warnings, scopes: () => scopes };
 }
 
 export async function fetchDataUri(url: string): Promise<string | null> {

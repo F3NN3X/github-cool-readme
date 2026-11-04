@@ -17,8 +17,8 @@ const HELP = `Usage: node src/cli.ts [options]
   --from-snapshot <file>  Render from saved data instead of calling GitHub
   --preview               Also write preview.html next to the SVGs
 
-The token is read from GITHUB_TOKEN or GH_TOKEN. It needs the "repo" and "read:org" scopes
-to count private and organization work.`;
+The token is read from GITHUB_TOKEN or GH_TOKEN. It needs the "repo", "read:org" and
+"read:user" scopes to count private and organization work.`;
 
 const log = (msg: string) => console.error(msg);
 
@@ -54,7 +54,7 @@ async function main(): Promise<void> {
     log(`Using data from ${values['from-snapshot']} (${snapshot.generatedAt})`);
   } else {
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-    if (!token) throw new ConfigError('set GITHUB_TOKEN (or GH_TOKEN) to a token with the repo and read:org scopes');
+    if (!token) throw new ConfigError('set GITHUB_TOKEN (or GH_TOKEN) to a token with the repo, read:org and read:user scopes');
     snapshot = await collect(createClient(token, log), config, log);
     if (values.snapshot) {
       mkdirSync(dirname(values.snapshot), { recursive: true });
@@ -63,7 +63,7 @@ async function main(): Promise<void> {
     }
   }
 
-  if (snapshot.version !== 3) throw new ConfigError('the snapshot was made by an older version; collect it again');
+  if (snapshot.version !== 4) throw new ConfigError('the snapshot was made by an older version; collect it again');
 
   const model = compute(snapshot, config);
   for (const note of model.notes) log(`note: ${note}`);

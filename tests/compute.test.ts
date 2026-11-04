@@ -26,6 +26,13 @@ describe('summary', () => {
     expect(m.summary.activity).toEqual({ activeDays: 6, totalDays: 10, percent: 60 });
   });
 
+  it('counts repos beyond the 100 GitHub lists, but only when nothing is filtered', () => {
+    const s = fixture();
+    s.last12Months.totals.commits += 7; // contributions in repos the per-repo lists left out
+    expect(row(compute(s, config()), 'commits')[0]).toBe(167);
+    expect(row(compute(s, config((c) => (c.include.orgs = false))), 'commits')[0]).toBe(60);
+  });
+
   it('leaves out private repos when asked', () => {
     const m = compute(fixture(), config((c) => (c.include.private = false)));
     expect(row(m, 'commits')).toEqual([10, 100]);

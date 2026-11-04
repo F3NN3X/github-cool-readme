@@ -60,7 +60,7 @@ describe('cards', () => {
 
   it('renders empty states', () => {
     const c = structuredClone(DEFAULT_CONFIG);
-    const model = compute({ ...fixture(), activity: [], commits: {} }, c);
+    const model = compute({ ...fixture(), allTime: [], pullRequests: [] }, c);
     const files = renderAll(model, c);
     expect(files['languages-light.svg']).toContain('No language data yet');
     expect(files['contributions-light.svg']).toContain('No contributions to other projects yet');

@@ -1,5 +1,5 @@
 import { repoKey, type Config } from './config.ts';
-import type { Activity, Snapshot } from './types.ts';
+import type { ContributionWindow, Snapshot } from './types.ts';
 
 export type CountKey = 'commits' | 'pullRequests' | 'reviews' | 'issues' | 'repos';
 
@@ -40,12 +40,12 @@ export interface Model {
 const ROW_LABELS: Record<CountKey, string> = {
   commits: 'Commits',
   pullRequests: 'Pull requests',
-  reviews: 'Pull requests reviewed',
+  reviews: 'Reviews',
   issues: 'Issues',
   repos: 'Repos contributed to',
 };
 
-const KIND_ROW: Record<Activity['kind'], CountKey> = { pr: 'pullRequests', issue: 'issues', review: 'reviews' };
+const FIELDS = ['commits', 'pullRequests', 'reviews', 'issues'] as const;
 
 export function compute(snapshot: Snapshot, config: Config): Model {
   const notes: string[] = [];
@@ -66,26 +66,28 @@ export function compute(snapshot: Snapshot, config: Config): Model {
     return keys;
   };
 
-  // Summary: both columns from the same sources, only the time window differs.
-  const counts = (recentOnly: boolean) => {
+  // Summary: both columns from the contributions API, only the time window differs.
+  const filtering = !include.private || !include.orgs;
+  const counts = (windows: ContributionWindow[]) => {
     const sums: Record<CountKey, number> = { commits: 0, pullRequests: 0, reviews: 0, issues: 0, repos: 0 };
     const repos = new Set<string>();
-    for (const [key, c] of Object.entries(snapshot.commits)) {
-      const n = recentOnly ? c.last12Months : c.allTime;
-      if (!n || !included(key)) continue;
-      sums.commits += n;
-      repos.add(key);
-    }
-    for (const a of snapshot.activity) {
-      if (!included(a.repo) || (recentOnly && a.createdAt < snapshot.last12MonthsFrom)) continue;
-      sums[KIND_ROW[a.kind]]++;
-      repos.add(a.repo);
+    for (const w of windows) {
+      const listed = { commits: 0, pullRequests: 0, reviews: 0, issues: 0 };
+      for (const [key, c] of Object.entries(w.byRepo)) {
+        for (const f of FIELDS) listed[f] += c[f];
+        if (!included(key)) continue;
+        for (const f of FIELDS) sums[f] += c[f];
+        if (c.commits + c.pullRequests + c.reviews + c.issues > 0) repos.add(key);
+      }
+      // GitHub lists at most 100 repos per type and window; the rest only shows in the totals.
+      // That rest can be counted only when nothing is filtered out.
+      if (!filtering) for (const f of FIELDS) sums[f] += Math.max(0, w.totals[f] - listed[f]);
     }
     sums.repos = repos.size;
     return sums;
   };
-  const last12 = counts(true);
-  const all = counts(false);
+  const last12 = counts([snapshot.last12Months]);
+  const all = counts(snapshot.allTime);
   const activeDays = snapshot.calendar.filter((d) => d.count > 0).length;
   const totalDays = snapshot.calendar.length;
 
@@ -121,9 +123,16 @@ export function compute(snapshot: Snapshot, config: Config): Model {
   for (const [ref, w] of Object.entries(lc.repoWeights)) weights.set(repoKey(ref, login), w);
   known(Object.keys(lc.repoWeights), 'languages.repoWeights');
 
+  const commitsByRepo = new Map<string, number>();
+  for (const w of snapshot.allTime) {
+    for (const [key, c] of Object.entries(w.byRepo)) {
+      if (c.commits) commitsByRepo.set(key, (commitsByRepo.get(key) ?? 0) + c.commits);
+    }
+  }
+
   const scores = new Map<string, { color: string | null; score: number }>();
-  for (const [key, c] of Object.entries(snapshot.commits)) {
-    if (!c.allTime || !included(key) || excludedRepos.has(key)) continue;
+  for (const [key, commits] of commitsByRepo) {
+    if (!included(key) || excludedRepos.has(key)) continue;
     const weight = weights.get(key) ?? 1;
     if (weight === 0) continue;
     const langs = snapshot.repos[key].languages.filter((l) => !excludedLangs.has(l.name.toLowerCase()));
@@ -131,7 +140,7 @@ export function compute(snapshot: Snapshot, config: Config): Model {
     if (!size) continue;
     for (const l of langs) {
       const entry = scores.get(l.name) ?? { color: l.color, score: 0 };
-      entry.score += (c.allTime * weight * l.size) / size;
+      entry.score += (commits * weight * l.size) / size;
       scores.set(l.name, entry);
     }
   }
@@ -152,8 +161,8 @@ export function compute(snapshot: Snapshot, config: Config): Model {
   const cc = config.contributions;
   const pins = known(cc.pin, 'contributions.pin');
   const hidden = known(cc.hide, 'contributions.hide');
-  const outside = snapshot.activity.filter((a) => {
-    if (a.kind !== 'pr' || hidden.has(a.repo)) return false;
+  const outside = snapshot.pullRequests.filter((a) => {
+    if (hidden.has(a.repo)) return false;
     if (a.state !== 'MERGED' && !(a.state === 'OPEN' && cc.includeOpen)) return false;
     const r = snapshot.repos[a.repo];
     const owner = r.owner.toLowerCase();

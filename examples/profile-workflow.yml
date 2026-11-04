@@ -1,4 +1,4 @@
-# Copy to .github/workflows/cards.yml in your profile repo (<you>/<you>).
+# README cards, see https://github.com/pedrocatalao/github-cool-readme
 name: Update README cards
 
 on:
@@ -12,6 +12,7 @@ permissions:
 jobs:
   cards:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: pedrocatalao/github-cool-readme@main

@@ -57,10 +57,10 @@ summary:
   title: null
 languages:
   count: 6
-  exclude: []           # language names
+  exclude: []           # language names; their share is dropped
   excludeRepos: []      # "repo" for your own, "owner/repo" otherwise
   repoWeights: {}       # repo: multiplier; 0 leaves it out
-  other: true           # fold the rest into "Other"
+  other: true           # fold the rest into "Other"; false: the shown ones share 100%
 contributions:
   count: 6
   includeOpen: true

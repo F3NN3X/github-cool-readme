@@ -54,9 +54,9 @@ describe('languages', () => {
     expect(shares(compute(fixture(), config()))).toEqual({ Ruby: 34.3, C: 25.7, Batchfile: 22.9, Rust: 14.3, Python: 2.9 });
   });
 
-  it('gives an excluded language share to the rest of that repo', () => {
+  it('drops an excluded language, without handing its share to the repo\'s other languages', () => {
     const m = compute(fixture(), config((c) => (c.languages.exclude = ['batchfile'])));
-    expect(shares(m)).toEqual({ Ruby: 57.1, C: 25.7, Rust: 14.3, Python: 2.9 });
+    expect(shares(m)).toEqual({ Ruby: 44.4, C: 33.3, Rust: 18.5, Python: 3.7 });
   });
 
   it('applies repo weights, where 0 leaves a repo out', () => {
@@ -67,6 +67,11 @@ describe('languages', () => {
   it('excludes repos, by short name for your own', () => {
     const m = compute(fixture(), config((c) => (c.languages.excludeRepos = ['secret'])));
     expect(m.languages.map((l) => l.name)).not.toContain('Rust');
+  });
+
+  it('shares 100% between the languages shown when Other is off', () => {
+    const m = compute(fixture(), config((c) => { c.languages.count = 2; c.languages.other = false; }));
+    expect(shares(m)).toEqual({ Ruby: 57.1, C: 42.9 });
   });
 
   it('folds the rest into Other', () => {

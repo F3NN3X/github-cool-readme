@@ -4,8 +4,9 @@ include:
   orgs: true
 languages:
   count: 6
-  exclude: [Batchfile, PHP]
+  exclude: [Batchfile, PHP, HCL, Jinja, JavaScript]
   excludeRepos: [juca]
+  other: false
 contributions:
   count: 6
   includeOpen: true

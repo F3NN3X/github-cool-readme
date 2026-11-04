@@ -131,17 +131,20 @@ export function compute(snapshot: Snapshot, config: Config): Model {
     if (!included(key) || excludedRepos.has(key)) continue;
     const weight = weights.get(key) ?? 1;
     if (weight === 0) continue;
-    const langs = snapshot.repos[key].languages.filter((l) => !excludedLangs.has(l.name.toLowerCase()));
+    // An excluded language's share of the repo is dropped, not handed to the repo's other languages.
+    const langs = snapshot.repos[key].languages;
     const size = langs.reduce((s, l) => s + l.size, 0);
     if (!size) continue;
     for (const l of langs) {
+      if (excludedLangs.has(l.name.toLowerCase())) continue;
       const entry = scores.get(l.name) ?? { color: l.color, score: 0 };
       entry.score += (commits * weight * l.size) / size;
       scores.set(l.name, entry);
     }
   }
-  const total = [...scores.values()].reduce((s, e) => s + e.score, 0);
   const ranked = [...scores.entries()].sort((a, b) => b[1].score - a[1].score);
+  // Without "Other", the languages shown share 100% between them, so the bar stays full.
+  const total = (lc.other ? ranked : ranked.slice(0, lc.count)).reduce((s, [, e]) => s + e.score, 0);
   const languages: LanguageItem[] = ranked.slice(0, lc.count).map(([name, e]) => ({
     name,
     color: e.color,

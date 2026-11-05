@@ -3,7 +3,7 @@
 import { createRequire } from 'node:module';
 import type { SummaryModel } from '../compute.ts';
 import { textCells, textWidth } from './font.ts';
-import { H, PITCH, TITLE_ROW, W, frame, path, ringCells, type Look, type Style } from './dmd.ts';
+import { H, PITCH, TITLE_ROW, W, drawDots, frame, path, ringCells, type Look, type Style } from './dmd.ts';
 import { rasterize } from './raster.ts';
 import { slideshow, type Item } from './slides.ts';
 
@@ -18,6 +18,7 @@ const px = (cells: number) => cells * PITCH;
 
 export function renderDisplaySummary(m: SummaryModel, style: Style): string {
   const { look } = style;
+  drawDots(style.dots);
   const stats = [
     ...m.rows.map((r) => ({ label: r.label.toUpperCase(), year: r.last12Months, total: r.allTime })),
     { label: 'STARS EARNED', year: m.stars.last12Months, total: m.stars.allTime },

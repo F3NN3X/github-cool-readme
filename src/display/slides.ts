@@ -2,7 +2,7 @@
 // with a pinball-style effect, in an endless loop. All movement jumps a whole dot at a time.
 
 import { charCells, textCells } from './font.ts';
-import { H as height, PITCH, W as width, keyframes, path, type Cell, type Look } from './dmd.ts';
+import { H as height, PITCH, W as width, keyframes, maskPath, path, type Cell, type Look } from './dmd.ts';
 
 export type Effect = 'sparkle' | 'push' | 'wipe' | 'flash' | 'type';
 export const EFFECTS: Effect[] = ['sparkle', 'push', 'wipe', 'flash', 'type'];
@@ -130,7 +130,7 @@ export function slideshow(id: string, slides: Item[][], region: Region, look: Lo
       // Sparkle: the slide lights up through random groups of dots, one group after another.
       const groups = sparkleTiles(6);
       defs += groups
-        .map((g, k) => `<pattern id="${P}sp${i}p${k}" width="${px(16)}" height="${px(16)}" patternUnits="userSpaceOnUse">${path(g, '#fff')}</pattern>`)
+        .map((g, k) => `<pattern id="${P}sp${i}p${k}" width="${px(16)}" height="${px(16)}" patternUnits="userSpaceOnUse">${maskPath(g)}</pattern>`)
         .join('');
       // Once all groups are on, one solid area takes over, so the groups' small squares leave no seams.
       defs += `<mask id="${P}sp${i}" ${all}>` +

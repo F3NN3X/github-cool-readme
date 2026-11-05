@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { compute } from '../src/compute.ts';
 import { DEFAULT_CONFIG, parseConfig, type Config } from '../src/config.ts';
-import { cellsPath, look, ringCells } from '../src/display/dmd.ts';
+import { cellsPath, dotsPath, look, ringCells } from '../src/display/dmd.ts';
 import { textCells, textWidth } from '../src/display/font.ts';
 import { rasterize } from '../src/display/raster.ts';
 import { renderDisplayContributions } from '../src/display/contributions.ts';
@@ -46,6 +46,13 @@ describe('dot font', () => {
 describe('grid', () => {
   it('merges neighbouring cells in a row into one rectangle', () => {
     expect(cellsPath([[0, 0], [1, 0], [2, 0], [5, 1]])).toBe('M0 0h9v3h-9zM15 3h3v3h-3z');
+  });
+
+  it('draws LEDs as dotted lines along the longer side of each block', () => {
+    const bar: [number, number][] = [];
+    for (let r = 0; r < 10; r++) for (let c = 0; c < 2; c++) bar.push([c, r]); // 2 wide, 10 tall: two columns
+    expect(dotsPath(bar)).toBe('M1.5 1.5v28.5M4.5 1.5v28.5'); // half a cell past the last dot
+    expect(dotsPath([[3, 0]])).toBe('M10.5 1.5h1.5'); // a lone dot is a short line too
   });
 
   it('draws a block of cells as one rectangle, so bars have no seams', () => {
@@ -115,8 +122,9 @@ describe('oled cards', () => {
     for (const color of ['amber', 'green', 'theme'] as const) {
       for (const dots of [true, false]) {
         const files = display((c) => { c.color = color; c.matrix = dots; });
-        expect(files['summary-dark.svg'].includes('mask="url(#dots)"')).toBe(dots);
-        expect(files['summary-dark.svg'].includes('filter="url(#glow)"')).toBe(color !== 'theme');
+        // LEDs are real circles (round-capped dashes), never a mask or a filter: Safari blurs those.
+        expect(files['summary-dark.svg'].includes('stroke-dasharray="0 3"')).toBe(dots);
+        expect(files['summary-dark.svg']).not.toMatch(/mask="url\(#dots\)"|filter=/);
       }
     }
     // LED panels look the same on both themes; the theme colours follow the viewer's theme.
@@ -139,7 +147,7 @@ describe('oled cards', () => {
     const clear = display((c) => (c.transparent = true))['summary-dark.svg'];
     expect(panel).toContain('fill="#0d0b07"'); // the amber panel
     expect(clear).not.toContain('fill="#0d0b07"');
-    expect(clear).toContain('mask="url(#dots)"'); // still LEDs, now on whatever is behind
+    expect(clear).toContain('stroke-dasharray="0 3"'); // still LEDs, now on whatever is behind
   });
 
   it('drops every animation when they are off', () => {

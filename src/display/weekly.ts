@@ -4,7 +4,7 @@
 
 import type { WeekdayItem } from '../compute.ts';
 import { textCells, textWidth } from './font.ts';
-import { COLS, H, PITCH, W, frame, keyframes, path, type Cell, type Look, type Style } from './dmd.ts';
+import { COLS, H, PITCH, W, drawDots, frame, keyframes, maskPath, path, type Cell, type Look, type Style } from './dmd.ts';
 import { titleLine } from './languages.ts';
 import { sparkleTiles } from './slides.ts';
 
@@ -23,6 +23,7 @@ const GROUPS = 6;
 
 export function renderDisplayWeekly(days: WeekdayItem[], title: string | null, style: Style): string {
   const { look } = style;
+  drawDots(style.dots);
   const header = titleLine(title, look);
   const max = Math.max(0, ...days.map((d) => d.count));
   if (!max) {
@@ -57,7 +58,7 @@ export function renderDisplayWeekly(days: WeekdayItem[], title: string | null, s
   // Dissolve in: random groups of dots switch on one after another; at the end all switch off at once.
   const groups = sparkleTiles(GROUPS);
   const patterns = groups
-    .map((g, k) => `<pattern id="wsp${k}" width="${16 * PITCH}" height="${16 * PITCH}" patternUnits="userSpaceOnUse">${path(g, '#fff')}</pattern>`)
+    .map((g, k) => `<pattern id="wsp${k}" width="${16 * PITCH}" height="${16 * PITCH}" patternUnits="userSpaceOnUse">${maskPath(g)}</pattern>`)
     .join('');
   // Once all groups are on, one solid area takes over: the groups' many small squares would
   // otherwise leave faint seams where they meet when the card is shown scaled.

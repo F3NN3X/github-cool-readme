@@ -67,7 +67,7 @@ The same numbers as pinball-style dot-matrix displays: big readable text in a do
 
 ### Looks
 
-**Amber**: the orange glow of a plasma display. The default.
+**Amber**: the orange of a plasma display. The default.
 
 ```yaml
 style: oled

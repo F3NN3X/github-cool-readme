@@ -2,7 +2,7 @@
 
 import type { LanguageItem } from '../compute.ts';
 import { textCells, textWidth } from './font.ts';
-import { COLS, H, PITCH, TITLE_ROW, W, frame, keyframes, path, type Cell, type Look, type Style } from './dmd.ts';
+import { COLS, H, PITCH, TITLE_ROW, W, drawDots, frame, keyframes, path, type Cell, type Look, type Style } from './dmd.ts';
 import { ENTER, HOLD, slideshow, type Item } from './slides.ts';
 
 const BAR = { col: 4, row: 50, cols: COLS - 8, rows: 6 };
@@ -22,6 +22,7 @@ export function titleLine(title: string | null, look: Look): string {
 
 export function renderDisplayLanguages(items: LanguageItem[], title: string | null, style: Style): string {
   const { look } = style;
+  drawDots(style.dots);
   const header = titleLine(title, look);
   if (!items.length) {
     return frame({

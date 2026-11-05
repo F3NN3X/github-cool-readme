@@ -1,5 +1,5 @@
 // Shared pieces of the display cards: a grid of 3px cells, looks (amber, green, GitHub
-// colours), the panel with optional round LED dots and glow, and keyframe helpers.
+// colours), the panel with optional round LED dots, and keyframe helpers.
 
 export const PITCH = 3;
 
@@ -30,36 +30,37 @@ export interface Look {
   /** Unlit dots, shown faintly behind the lit ones. */
   unlit: string;
   unlitOpacity: number;
-  glow: boolean;
 }
 
 export function look(color: Color, mode: Mode): Look {
   if (color === 'amber') {
-    return { lit: '#ffab1a', accent: '#ffab1a', shine: '#fff2cc', dim: 0.55, panel: '#0d0b07', unlit: '#ffab1a', unlitOpacity: 0.09, glow: true };
+    return { lit: '#ffab1a', accent: '#ffab1a', shine: '#fff2cc', dim: 0.55, panel: '#0d0b07', unlit: '#ffab1a', unlitOpacity: 0.09 };
   }
   if (color === 'green') {
-    return { lit: '#3dff74', accent: '#3dff74', shine: '#e8ffef', dim: 0.55, panel: '#070d09', unlit: '#3dff74', unlitOpacity: 0.08, glow: true };
+    return { lit: '#3dff74', accent: '#3dff74', shine: '#e8ffef', dim: 0.55, panel: '#070d09', unlit: '#3dff74', unlitOpacity: 0.08 };
   }
   // theme: GitHub's Primer colours, on a transparent background, per light or dark theme.
   return mode === 'light'
-    ? { lit: '#1f2328', accent: '#0969da', shine: '#0969da', dim: 0.6, panel: null, unlit: '#d1d9e0', unlitOpacity: 0.3, glow: false }
-    : { lit: '#f0f6fc', accent: '#4493f8', shine: '#4493f8', dim: 0.6, panel: null, unlit: '#3d444d', unlitOpacity: 0.35, glow: false };
+    ? { lit: '#1f2328', accent: '#0969da', shine: '#0969da', dim: 0.6, panel: null, unlit: '#d1d9e0', unlitOpacity: 0.3 }
+    : { lit: '#f0f6fc', accent: '#4493f8', shine: '#4493f8', dim: 0.6, panel: null, unlit: '#3d444d', unlitOpacity: 0.35 };
 }
 
-/**
- * Lit cells as one path. Neighbouring cells in a row become one run, and identical runs in rows
- * that touch become one rectangle, so a bar is a single shape: separate strips would leave faint
- * seams where they meet when the card is shown scaled.
- */
-export function cellsPath(cells: Cell[]): string {
+/** Cells grouped into rectangles: neighbouring cells in a row form a run, and identical runs in rows that touch merge. */
+interface Rect {
+  col: number;
+  row: number;
+  width: number;
+  height: number;
+}
+function cellRects(cells: Cell[]): Rect[] {
   const rows = new Map<number, Set<number>>();
   for (const [c, r] of cells) {
     if (!rows.has(r)) rows.set(r, new Set());
     rows.get(r)!.add(c);
   }
   // Rectangles still growing downwards, by "first column:width".
-  const open = new Map<string, { col: number; row: number; width: number; height: number }>();
-  const done: { col: number; row: number; width: number; height: number }[] = [];
+  const open = new Map<string, Rect>();
+  const done: Rect[] = [];
   for (const r of [...rows.keys()].sort((a, b) => a - b)) {
     const cols = [...rows.get(r)!].sort((a, b) => a - b);
     const seen = new Set<string>();
@@ -80,8 +81,15 @@ export function cellsPath(cells: Cell[]): string {
     for (const [key, rect] of open) if (!seen.has(key)) (done.push(rect), open.delete(key));
   }
   done.push(...open.values());
-  done.sort((a, b) => a.row - b.row || a.col - b.col);
-  return done
+  return done.sort((a, b) => a.row - b.row || a.col - b.col);
+}
+
+/**
+ * Lit cells as solid rectangles. Merging rows into one rectangle keeps bars a single shape:
+ * separate strips would leave faint seams where they meet when the card is shown scaled.
+ */
+export function cellsPath(cells: Cell[]): string {
+  return cellRects(cells)
     .map((x) => {
       const w = x.width * PITCH;
       return `M${x.col * PITCH} ${x.row * PITCH}h${w}v${x.height * PITCH}h-${w}z`;
@@ -89,8 +97,45 @@ export function cellsPath(cells: Cell[]): string {
     .join('');
 }
 
+/**
+ * Lit cells as round LEDs: lines through the cell centres, drawn with round-capped dashes of
+ * length zero, one cell apart, so every dash is a circle. Real circles stay sharp in every
+ * browser (Safari blurs masks and filters in SVG images), and a whole row is one short command.
+ * Each line runs half a cell past its last dot: WebKit drops a dash that sits exactly on the end of
+ * a line, and skips lines of length zero (a lone dot).
+ */
+export function dotsPath(cells: Cell[]): string {
+  const c = (n: number) => n * PITCH + PITCH / 2;
+  const len = (n: number) => (n - 1) * PITCH + PITCH / 2;
+  return cellRects(cells)
+    .map((x) => {
+      const lines: string[] = [];
+      if (x.width >= x.height) for (let r = 0; r < x.height; r++) lines.push(`M${c(x.col)} ${c(x.row + r)}h${len(x.width)}`);
+      else for (let k = 0; k < x.width; k++) lines.push(`M${c(x.col + k)} ${c(x.row)}v${len(x.height)}`);
+      return lines.join('');
+    })
+    .join('');
+}
+
+export const DOT_SIZE = 2.4; // diameter of an LED, in a 3px cell
+let roundDots = false;
+/** Draw cells as round LEDs (the matrix) or as square pixels, for the card being rendered. */
+export function drawDots(on: boolean): void {
+  roundDots = on;
+}
+const dotted = (stroke: string) =>
+  `fill="none" stroke="${stroke}" stroke-width="${DOT_SIZE}" stroke-linecap="round" stroke-dasharray="0 ${PITCH}"`;
+
 export function path(cells: Cell[], fill: string, attrs = ''): string {
-  return cells.length ? `<path d="${cellsPath(cells)}" fill="${fill}"${attrs ? ' ' + attrs : ''}/>` : '';
+  if (!cells.length) return '';
+  if (!roundDots) return `<path d="${cellsPath(cells)}" fill="${fill}"${attrs ? ' ' + attrs : ''}/>`;
+  const a = attrs.replace(/fill-opacity=/g, 'stroke-opacity=');
+  return `<path d="${dotsPath(cells)}" ${dotted(fill)}${a ? ' ' + a : ''}/>`;
+}
+
+/** Solid cells for masks (the sparkle), whatever the dots look like. */
+export function maskPath(cells: Cell[]): string {
+  return cells.length ? `<path d="${cellsPath(cells)}" fill="#fff"/>` : '';
 }
 
 /** Cells of a ring of the given outer radius and thickness, all in cells. */
@@ -142,23 +187,14 @@ export interface FrameOptions {
 
 export function frame(o: FrameOptions): string {
   const { look: l } = o;
-  const all = `x="0" y="0" width="${o.width}" height="${o.height}"`;
-  const defs = [
-    o.dots
-      ? `<pattern id="dot" width="${PITCH}" height="${PITCH}" patternUnits="userSpaceOnUse"><circle cx="${PITCH / 2}" cy="${PITCH / 2}" r="1.2" fill="#fff"/></pattern>` +
-        `<mask id="dots" maskUnits="userSpaceOnUse" ${all}><rect ${all} fill="url(#dot)"/></mask>`
-      : '',
-    l.glow
-      ? `<filter id="glow" filterUnits="userSpaceOnUse" ${all}><feGaussianBlur stdDeviation="1.4" result="b"/>` +
-        `<feComponentTransfer in="b" result="h"><feFuncA type="linear" slope="0.7"/></feComponentTransfer>` +
-        `<feMerge><feMergeNode in="h"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`
-      : '',
-  ].join('');
   const panel = l.panel && o.panel ? `<rect x="0.5" y="0.5" width="${o.width - 1}" height="${o.height - 1}" rx="8" fill="${l.panel}"/>` : '';
-  const unlit = o.dots ? `<rect ${all} fill="${l.unlit}" fill-opacity="${l.unlitOpacity}" mask="url(#dots)"/>` : '';
-  let content = o.body;
-  if (o.dots) content = `<g mask="url(#dots)">${content}</g>`;
-  if (l.glow) content = `<g filter="url(#glow)">${content}</g>`;
+  // The unlit LEDs: one dotted line per row, faint. No masks or filters: Safari blurs those in images.
+  let unlit = '';
+  if (o.dots) {
+    const rows: string[] = [];
+    for (let y = PITCH / 2; y < o.height; y += PITCH) rows.push(`M${PITCH / 2} ${y}h${Math.floor(o.width / PITCH - 1) * PITCH + PITCH / 2}`);
+    unlit = `<path d="${rows.join('')}" ${dotted(l.unlit)} stroke-opacity="${l.unlitOpacity}"/>`;
+  }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${o.width}" height="${o.height}" viewBox="0 0 ${o.width} ${o.height}" fill="none" role="img" aria-labelledby="title desc">
 <title id="title">${esc(o.title)}</title>
 <desc id="desc">${esc(o.desc)}</desc>
@@ -166,10 +202,9 @@ export function frame(o: FrameOptions): string {
   text { font-family: ${FONT}; }${o.animations ? o.css : ''}
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
 </style>
-<defs>${defs}</defs>
 ${panel}
 ${unlit}
-${content}
+${o.body}
 </svg>
 `;
 }

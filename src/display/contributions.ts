@@ -4,12 +4,13 @@ import type { ContributionItem } from '../compute.ts';
 import { describe } from '../render/contributions.ts';
 import { formatCompact } from '../render/svg.ts';
 import { textCells, textWidth } from './font.ts';
-import { COLS, H, W, frame, path, type Look, type Style } from './dmd.ts';
+import { COLS, H, W, drawDots, frame, path, type Look, type Style } from './dmd.ts';
 import { fit, titleLine } from './languages.ts';
 import { slideshow, type Item } from './slides.ts';
 
 export function renderDisplayContributions(items: ContributionItem[], title: string | null, style: Style): string {
   const { look } = style;
+  drawDots(style.dots);
   const header = titleLine(title, look);
   if (!items.length) {
     return frame({

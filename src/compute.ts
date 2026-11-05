@@ -1,4 +1,5 @@
 import { repoKey, type Config } from './config.ts';
+import { pullStats, streakStats } from './stats.ts';
 import type { ContributionWindow, Snapshot } from './types.ts';
 
 export type CountKey = 'commits' | 'pullRequests' | 'reviews' | 'issues';
@@ -58,7 +59,21 @@ export interface YearItem {
 
 export interface GlanceItem {
   label: string;
-  value: number;
+  value: number | string;
+}
+
+export interface ReleaseItem {
+  repo: string;
+  tag: string;
+  date: string;
+  /** How many releases the repo has. */
+  count: number;
+}
+
+export interface DownloadsModel {
+  /** Across all your public repos, not only the ones listed. */
+  total: number;
+  items: { repo: string; downloads: number }[];
 }
 
 export interface Model {
@@ -70,6 +85,10 @@ export interface Model {
   activity: ActivityItem[];
   years: YearItem[];
   glance: GlanceItem[];
+  releases: ReleaseItem[];
+  downloads: DownloadsModel;
+  streaks: GlanceItem[];
+  pulls: GlanceItem[];
   /** Things the user should know, e.g. config entries that matched nothing. */
   notes: string[];
 }
@@ -312,5 +331,30 @@ export function compute(snapshot: Snapshot, config: Config): Model {
     { label: 'Contributions', value: contributionsIn(snapshot.allTime) },
   ];
 
-  return { summary, languages, contributions, weekly, projects, activity, years, glance, notes };
+  const releasesHidden = known(config.releases.hide, 'releases.hide');
+  const releases: ReleaseItem[] = publicRepos
+    .flatMap((r) => {
+      const [latest] = r.releases;
+      return latest && !releasesHidden.has(r.nameWithOwner.toLowerCase())
+        ? [{ repo: repoName(r.nameWithOwner), tag: clean(latest.tag), date: latest.date, count: r.releases.length }]
+        : [];
+    })
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, config.releases.count);
+
+  const downloadsHidden = known(config.downloads.hide, 'downloads.hide');
+  const downloadCounts = publicRepos
+    .filter((r) => !downloadsHidden.has(r.nameWithOwner.toLowerCase()))
+    .map((r) => ({ repo: repoName(r.nameWithOwner), downloads: r.releases.reduce((s, x) => s + x.downloads, 0) }))
+    .filter((d) => d.downloads > 0)
+    .sort((a, b) => b.downloads - a.downloads);
+  const downloads: DownloadsModel = {
+    total: downloadCounts.reduce((s, d) => s + d.downloads, 0),
+    items: downloadCounts.slice(0, config.downloads.count),
+  };
+
+  const streaks = streakStats(snapshot.allDays);
+  const pulls = pullStats(snapshot.pullRequests.filter((pr) => included(pr.repo)));
+
+  return { summary, languages, contributions, weekly, projects, activity, years, glance, releases, downloads, streaks, pulls, notes };
 }

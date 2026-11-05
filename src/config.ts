@@ -1,13 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 
-export const CARDS = ['summary', 'languages', 'contributions', 'weekly', 'projects', 'glance', 'activity', 'years'] as const;
+export const CARDS = ['summary', 'languages', 'contributions', 'weekly', 'projects', 'glance', 'releases', 'streaks', 'downloads', 'pulls', 'activity', 'years'] as const;
 export type Card = (typeof CARDS)[number];
 
 /** The cards made when the settings don't say. */
 export const DEFAULT_CARDS: Card[] = ['summary', 'languages', 'contributions', 'weekly'];
 /** These have no OLED version. */
-export const CLASSIC_ONLY_CARDS: Card[] = ['projects', 'glance', 'activity', 'years'];
+export const CLASSIC_ONLY_CARDS: Card[] = ['projects', 'glance', 'releases', 'streaks', 'downloads', 'pulls', 'activity', 'years'];
 /** How far back the activity card looks. */
 export const ACTIVITY_DAYS = 30;
 
@@ -90,6 +90,25 @@ export interface Config {
     /** An extra tile: your public repos whose name starts with this prefix. */
     counter: { label: string | null; prefix: string | null };
   };
+  releases: {
+    title: string | null;
+    /** How many repos to show; 3 are in view at a time, the rest scroll past in a loop. */
+    count: number;
+    hide: string[];
+  };
+  downloads: {
+    title: string | null;
+    /** How many repos to show; 3 are in view at a time, the rest scroll past in a loop. */
+    count: number;
+    /** Left out of the list and the total. */
+    hide: string[];
+  };
+  streaks: {
+    title: string | null;
+  };
+  pulls: {
+    title: string | null;
+  };
 }
 
 export const DEFAULT_CONFIG: Config = {
@@ -109,6 +128,10 @@ export const DEFAULT_CONFIG: Config = {
   activity: { title: 'Recent activity', count: 6, hide: [] },
   years: { title: 'Year by year', count: 3, milestones: {} },
   glance: { title: 'At a glance', counter: { label: null, prefix: null } },
+  releases: { title: 'Latest releases', count: 6, hide: [] },
+  downloads: { title: 'Downloads', count: 6, hide: [] },
+  streaks: { title: 'Streaks' },
+  pulls: { title: 'Pull requests' },
 };
 
 export class ConfigError extends Error {}
@@ -139,6 +162,10 @@ const SHAPE: Shape = {
   activity: { title: 'string?', count: 'number', hide: 'string[]' },
   years: { title: 'string?', count: 'number', milestones: 'strings' },
   glance: { title: 'string?', counter: { label: 'string?', prefix: 'string?' } },
+  releases: { title: 'string?', count: 'number', hide: 'string[]' },
+  downloads: { title: 'string?', count: 'number', hide: 'string[]' },
+  streaks: { title: 'string?' },
+  pulls: { title: 'string?' },
 };
 
 function check(value: unknown, shape: Shape, path: string): void {

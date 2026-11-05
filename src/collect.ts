@@ -1,6 +1,6 @@
 import { ACTIVITY_DAYS, repoKey, type Config } from './config.ts';
 import { fetchDataUri, type Client } from './github.ts';
-import type { ContributionWindow, PublicRepo, PullRequest, PullRequestState, Repo, RepoCounts, Snapshot } from './types.ts';
+import type { ContributionWindow, PublicRepo, PullRequest, Release, PullRequestState, Repo, RepoCounts, Snapshot } from './types.ts';
 
 // Commits, pull requests, issues, reviews and the calendar come from GitHub's contributions API,
 // with the same rules as the contribution graph on your profile. It only includes private and
@@ -59,6 +59,15 @@ query($login: String!, $from: DateTime!, $to: DateTime!, $calendar: Boolean!) {
   }
 }`;
 
+const CONTRIBUTIONS_CALENDAR_QUERY = `
+query($login: String!, $from: DateTime!, $to: DateTime!) {
+  user(login: $login) {
+    contributionsCollection(from: $from, to: $to) {
+      contributionCalendar { weeks { contributionDays { date contributionCount } } }
+    }
+  }
+}`;
+
 interface ContributionsResult {
   user: {
     contributionsCollection: {
@@ -85,6 +94,38 @@ interface RawPublicRepo {
   defaultBranchRef: {
     target: { history?: { totalCount: number; nodes: { committedDate: string; messageHeadline: string }[] } } | null;
   } | null;
+  releases: RawReleases;
+}
+
+interface RawRelease {
+  tagName: string;
+  publishedAt: string | null;
+  isDraft: boolean;
+  releaseAssets: { nodes: { name: string; downloadCount: number }[] };
+}
+
+interface RawReleases {
+  pageInfo: PageInfo;
+  nodes: RawRelease[];
+}
+
+/** Updater metadata and checksums: software fetches these, so they aren't downloads of the package. */
+const NOT_A_PACKAGE = /\.(json|sig|asc|sha1|sha256|sha512|blockmap|yml|yaml|txt)$/i;
+
+const RELEASES = `first: 100, orderBy: { field: CREATED_AT, direction: DESC }`;
+const RELEASE_FIELDS = `pageInfo { hasNextPage endCursor }
+  nodes { tagName publishedAt isDraft releaseAssets(first: 30) { nodes { name downloadCount } } }`;
+
+function toReleases(raw: RawRelease[]): Release[] {
+  return raw.flatMap((r) =>
+    r.isDraft || !r.publishedAt
+      ? []
+      : [{
+          tag: r.tagName,
+          date: r.publishedAt,
+          downloads: r.releaseAssets.nodes.filter((a) => !NOT_A_PACKAGE.test(a.name)).reduce((s, a) => s + a.downloadCount, 0),
+        }],
+  );
 }
 
 const PUBLIC_REPOS_QUERY = `
@@ -97,6 +138,7 @@ query($login: String!, $after: String, $id: ID!, $since: GitTimestamp!) {
         defaultBranchRef { target { ... on Commit {
           history(first: 1, since: $since, author: { id: $id }) { totalCount nodes { committedDate messageHeadline } }
         } } }
+        releases(${RELEASES}) { ${RELEASE_FIELDS} }
       }
     }
   }
@@ -318,7 +360,7 @@ export async function collect(client: Client, config: Config, log: (msg: string)
 
   // Your public repos, with your latest commit: only the cards that show them need this.
   const publicRepos: PublicRepo[] = [];
-  if (config.cards.includes('projects') || config.cards.includes('activity')) {
+  if (config.cards.some((card) => ['projects', 'activity', 'releases', 'downloads'].includes(card))) {
     const commitsSince = new Date(now.getTime() - ACTIVITY_DAYS * DAY).toISOString();
     for (let after: string | null = null; ; ) {
       const res: { user: { repositories: { pageInfo: PageInfo; nodes: RawPublicRepo[] } } } = await client.query(PUBLIC_REPOS_QUERY, {
@@ -327,6 +369,17 @@ export async function collect(client: Client, config: Config, log: (msg: string)
       for (const r of res.user.repositories.nodes) {
         const history = r.defaultBranchRef?.target?.history;
         const last = history?.nodes[0];
+        const releases = toReleases(r.releases.nodes);
+        for (let page = r.releases.pageInfo; page.hasNextPage; ) {
+          const [owner, name] = r.nameWithOwner.split('/');
+          const next: { repository: { releases: RawReleases } } = await client.query(
+            `query($owner: String!, $name: String!, $after: String) { repository(owner: $owner, name: $name) {
+              releases(${RELEASES}, after: $after) { ${RELEASE_FIELDS} } } }`,
+            { owner, name, after: page.endCursor },
+          );
+          releases.push(...toReleases(next.repository.releases.nodes));
+          page = next.repository.releases.pageInfo;
+        }
         publicRepos.push({
           nameWithOwner: r.nameWithOwner,
           description: r.description,
@@ -335,6 +388,7 @@ export async function collect(client: Client, config: Config, log: (msg: string)
           language: r.primaryLanguage,
           recentCommits: history?.totalCount ?? 0,
           lastCommit: last ? { date: last.committedDate, message: last.messageHeadline } : null,
+          releases,
         });
       }
       if (!res.user.repositories.pageInfo.hasNextPage) break;
@@ -343,10 +397,22 @@ export async function collect(client: Client, config: Config, log: (msg: string)
     log(`${publicRepos.length} public repositories`);
   }
 
+  // Every day since you joined, for the streaks card: the last-12-months calendar is too short.
+  const allDays: Snapshot['allDays'] = [];
+  if (config.cards.includes('streaks')) {
+    const calendars = await inParallel(years, 3, async (range) => {
+      const res = await client.query<ContributionsResult>(CONTRIBUTIONS_CALENDAR_QUERY, {
+        login, from: range.from.toISOString(), to: range.to.toISOString(),
+      });
+      return res.user.contributionsCollection.contributionCalendar?.weeks.flatMap((w) => w.contributionDays) ?? [];
+    });
+    allDays.push(...calendars.flat().map((d) => ({ date: d.date, count: d.contributionCount })));
+  }
+
   for (const w of client.warnings) log(`warning: ${w}`);
 
   return {
-    version: 5,
+    version: 6,
     generatedAt: now.toISOString(),
     user: { login, name: user.name, createdAt: user.createdAt },
     orgs,
@@ -358,6 +424,7 @@ export async function collect(client: Client, config: Config, log: (msg: string)
     calendar,
     pullRequests,
     publicRepos,
+    allDays,
     avatars,
   };
 }

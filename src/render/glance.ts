@@ -5,8 +5,8 @@ import { CARD_HEIGHT, CONTENT_TOP, NARROW as WIDTH, PAD, card, esc, fadeIn, form
 const COLUMNS = 2;
 const ROW = 48;
 
-export function renderGlance(items: GlanceItem[], theme: Theme, config: Config): string {
-  const title = config.glance.title;
+/** A narrow card of big numbers with a label under each, two to a row. */
+export function tileCard(title: string | null, fallback: string, items: GlanceItem[], theme: Theme, config: Config): string {
   const column = (WIDTH - 2 * PAD) / COLUMNS;
   const tiles = items
     .map((item, i) =>
@@ -14,7 +14,7 @@ export function renderGlance(items: GlanceItem[], theme: Theme, config: Config):
         PAD + (i % COLUMNS) * column,
         CONTENT_TOP + Math.floor(i / COLUMNS) * ROW,
         i,
-        `<text y="18" style="font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums;">${formatNumber(item.value)}</text>` +
+        `<text y="18" style="font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums;">${typeof item.value === 'number' ? formatNumber(item.value) : esc(item.value)}</text>` +
           `<text y="35" class="small secondary">${esc(item.label)}</text>`,
         config,
       ),
@@ -24,10 +24,14 @@ export function renderGlance(items: GlanceItem[], theme: Theme, config: Config):
   return card({
     width: WIDTH,
     height: CARD_HEIGHT,
-    title: title ?? 'At a glance',
+    title: title ?? fallback,
     desc: items.map((i) => `${i.label}: ${i.value}`).join('. ') + '.',
     theme,
     config,
     body: (title ? headerText(title, PAD) : '') + '\n' + tiles,
   });
+}
+
+export function renderGlance(items: GlanceItem[], theme: Theme, config: Config): string {
+  return tileCard(config.glance.title, 'At a glance', items, theme, config);
 }

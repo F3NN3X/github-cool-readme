@@ -7,9 +7,11 @@ import { renderDisplaySummary } from '../display/summary.ts';
 import { renderDisplayWeekly } from '../display/weekly.ts';
 import { renderActivity } from './activity.ts';
 import { renderContributions } from './contributions.ts';
-import { renderGlance } from './glance.ts';
+import { renderDownloads } from './downloads.ts';
+import { renderGlance, tileCard } from './glance.ts';
 import { renderLanguages } from './languages.ts';
 import { renderProjects } from './projects.ts';
+import { renderReleases } from './releases.ts';
 import { renderSummary } from './summary.ts';
 import { THEMES, type Mode } from './svg.ts';
 import { renderWeekly } from './weekly.ts';
@@ -42,6 +44,10 @@ export function renderAll(model: Model, config: Config): Record<string, string> 
         activity: () => renderActivity(model.activity, theme, config),
         years: () => renderYears(model.years, theme, config),
         glance: () => renderGlance(model.glance, theme, config),
+        releases: () => renderReleases(model.releases, theme, config),
+        downloads: () => renderDownloads(model.downloads, theme, config),
+        streaks: () => tileCard(config.streaks.title, 'Streaks', model.streaks, theme, config),
+        pulls: () => tileCard(config.pulls.title, 'Pull requests', model.pulls, theme, config),
       };
     }
     for (const card of CARDS) if (config.cards.includes(card)) files[`${card}-${mode}.svg`] = render[card]!();
@@ -53,5 +59,5 @@ export function renderAll(model: Model, config: Config): Record<string, string> 
 export function cardWidths(config: Config): Record<string, number> {
   return config.style === 'oled'
     ? { summary: 400, languages: 400, contributions: 400, weekly: 400 }
-    : { summary: 450, languages: 350, contributions: 450, weekly: 350, projects: 450, glance: 350, activity: 450, years: 350 };
+    : { summary: 450, languages: 350, contributions: 450, weekly: 350, projects: 450, glance: 350, releases: 450, streaks: 350, downloads: 450, pulls: 350, activity: 450, years: 350 };
 }

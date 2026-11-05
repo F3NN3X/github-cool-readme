@@ -117,15 +117,19 @@ color: amber
 
 ## Extra cards
 
-Four more classic cards, left out unless you list them in `cards`. There are no OLED versions.
+More classic cards, left out unless you list them in `cards`. There are no OLED versions.
 
 - **Projects** (`projects`, 450 wide): your public repos by stars, with language and description.
 - **At a glance** (`glance`, 350): repositories, public repos, stars, languages and contributions, plus an optional counter of public repos by name prefix.
 - **Recent activity** (`activity`, 450): your public repos with commits in the last 30 days, with the latest commit message.
 - **Year by year** (`years`, 350): contributions per year, with optional milestones.
+- **Latest releases** (`releases`, 450): the newest release of each public repo.
+- **Downloads** (`downloads`, 450): release downloads per public repo, and the total. Updater metadata and checksums aren't counted.
+- **Streaks** (`streaks`, 350): current and longest streak, active days, and your best day and month, from your whole contribution history.
+- **Pull requests** (`pulls`, 350): opened, merged, merge rate, median time to merge, open now and closed unmerged.
 
 ```yaml
-cards: [summary, languages, contributions, weekly, projects, glance, activity, years]
+cards: [summary, languages, projects, glance, releases, streaks, downloads, pulls, activity, years, contributions, weekly]
 ```
 
 ## Where the numbers come from
@@ -217,6 +221,18 @@ glance:
   counter:              # an extra tile: public repos whose name starts with prefix
     label: null
     prefix: null
+releases:
+  title: Latest releases
+  count: 6              # 3 in view at a time; the rest scroll past in a loop
+  hide: []
+downloads:
+  title: Downloads
+  count: 6              # 3 in view at a time; the rest scroll past in a loop
+  hide: []              # left out of the total too
+streaks:
+  title: Streaks
+pulls:
+  title: Pull requests
 ```
 
 `theme.background`, `theme.border` and `summary.title` apply to the classic cards only. Unknown settings are an error, so typos don't go unnoticed.

@@ -6,7 +6,7 @@ import { compute } from './compute.ts';
 import { ConfigError, DEFAULT_CONFIG, loadConfig } from './config.ts';
 import { createClient } from './github.ts';
 import { previewHtml } from './preview.ts';
-import { renderAll } from './render/index.ts';
+import { cardWidths, renderAll } from './render/index.ts';
 import type { Snapshot } from './types.ts';
 
 const HELP = `Usage: node src/cli.ts [options]
@@ -71,7 +71,7 @@ async function main(): Promise<void> {
   const files = renderAll(model, config);
   mkdirSync(values.out, { recursive: true });
   for (const [name, svg] of Object.entries(files)) writeFileSync(join(values.out, name), svg);
-  if (values.preview) writeFileSync(join(values.out, 'preview.html'), previewHtml(Object.keys(files)));
+  if (values.preview) writeFileSync(join(values.out, 'preview.html'), previewHtml(Object.keys(files), cardWidths(config)));
   log(`Wrote ${Object.keys(files).length} cards to ${values.out}/`);
 }
 

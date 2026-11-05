@@ -169,15 +169,20 @@ else
   private=true; orgs=true
   ask "Count work in private repos? (only totals appear on the cards)" y || private=false
   ask "Count work in your organizations' repos?" y || orgs=false
+  style=classic
+  ask "Use the pinball-style OLED cards instead of the classic ones?" n && style=oled
   cat > "$CONFIG" <<EOF
 # Settings: https://github.com/$TOOL_REPO#settings
 user: $LOGIN
+style: $style
 include:
   private: $private
   orgs: $orgs
 EOF
   info "Adding $CONFIG"
 fi
+# OLED cards are all one size, shown 400 wide; classic ones are a wide and a narrow card per row.
+if grep -Eq '^style:[[:space:]]*oled' "$CONFIG" 2>/dev/null; then WIDE=400; NARROW=400; else WIDE=450; NARROW=350; fi
 
 commit_and_push() { # commit_and_push "message"
   git add -A
@@ -240,12 +245,12 @@ block="$(mktemp)"
 {
   echo "$START"
   echo '<p align="center">'
-  picture summary 450 "GitHub stats"
-  picture languages 350 "Most used languages"
+  picture summary $WIDE "GitHub stats"
+  picture languages $NARROW "Most used languages"
   echo '</p>'
   echo '<p align="center">'
-  picture contributions 450 "Notable contributions"
-  picture weekly 350 "Weekly rhythm"
+  picture contributions $WIDE "Notable contributions"
+  picture weekly $NARROW "Weekly rhythm"
   echo '</p>'
   echo "$END"
 } > "$block"

@@ -4,6 +4,12 @@ import { parse } from 'yaml';
 export interface Config {
   /** GitHub login. Defaults to the token's owner. */
   user: string | null;
+  /** classic: GitHub-style cards. oled: pinball-style dot-matrix displays. */
+  style: 'classic' | 'oled';
+  /** oled only: round LEDs; false draws square pixels. */
+  matrix: boolean;
+  /** oled only: theme uses GitHub's colours and follows the viewer's light or dark theme. */
+  color: 'amber' | 'green' | 'theme';
   include: {
     /** Count private repositories in the summary and languages cards. */
     private: boolean;
@@ -48,6 +54,9 @@ export interface Config {
 
 export const DEFAULT_CONFIG: Config = {
   user: null,
+  style: 'classic',
+  matrix: true,
+  color: 'amber',
   include: { private: true, orgs: true },
   theme: { background: 'transparent', border: false, animations: true },
   summary: { title: null, ring: 'percent' },
@@ -62,6 +71,9 @@ type Shape = { [key: string]: 'boolean' | 'string' | 'string?' | 'number' | 'str
 
 const SHAPE: Shape = {
   user: 'string?',
+  style: 'string',
+  matrix: 'boolean',
+  color: 'string',
   include: { private: 'boolean', orgs: 'boolean' },
   theme: { background: 'string', border: 'boolean', animations: 'boolean' },
   summary: { title: 'string?', ring: 'string' },
@@ -130,6 +142,12 @@ export function parseConfig(text: string): Config {
   const config = merge(DEFAULT_CONFIG, raw);
   if (config.theme.background !== 'transparent' && config.theme.background !== 'solid') {
     throw new ConfigError('"theme.background" must be "transparent" or "solid"');
+  }
+  if (config.style !== 'classic' && config.style !== 'oled') {
+    throw new ConfigError('"style" must be "classic" or "oled"');
+  }
+  if (!['amber', 'green', 'theme'].includes(config.color)) {
+    throw new ConfigError('"color" must be "amber", "green" or "theme"');
   }
   if (config.summary.ring !== 'percent' && config.summary.ring !== 'github') {
     throw new ConfigError('"summary.ring" must be "percent" or "github"');

@@ -1,7 +1,6 @@
 // A local page showing the cards the way setup.sh lays them out in a profile README (a wide
 // and a narrow card per row when they fit, in a column as wide as GitHub's), on GitHub's light and dark backgrounds.
-export function previewHtml(files: string[]): string {
-  const widths: Record<string, number> = { summary: 450, languages: 350, contributions: 450, weekly: 350 };
+export function previewHtml(files: string[], widths: Record<string, number>): string {
   const picture = (mode: 'light' | 'dark', card: string) =>
     files.includes(`${card}-${mode}.svg`) ? `<img src="${card}-${mode}.svg" width="${widths[card]}" alt="${card}">` : '';
   const readme = (mode: 'light' | 'dark') => `

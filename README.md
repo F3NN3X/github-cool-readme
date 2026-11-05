@@ -30,6 +30,88 @@ Private and organization work is counted (it can be turned off). Only totals app
 </picture>
 </p>
 
+## OLED cards
+
+The same numbers as pinball-style dot-matrix displays: big readable text in a dot font, one item at a time with pinball transitions, in amber, green or GitHub's colours, as round LEDs or square pixels. Set `style: oled`.
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="examples/oled-cards/summary-dark.svg">
+  <img src="examples/oled-cards/summary-light.svg" width="400" alt="GitHub stats">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="examples/oled-cards/languages-dark.svg">
+  <img src="examples/oled-cards/languages-light.svg" width="400" alt="Most used languages">
+</picture>
+</p>
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="examples/oled-cards/contributions-dark.svg">
+  <img src="examples/oled-cards/contributions-light.svg" width="400" alt="Notable contributions">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="examples/oled-cards/weekly-dark.svg">
+  <img src="examples/oled-cards/weekly-light.svg" width="400" alt="Weekly rhythm">
+</picture>
+</p>
+
+### Looks
+
+**Amber**: the orange glow of a plasma display. The default.
+
+```yaml
+style: oled
+color: amber
+```
+
+<p align="center">
+<img src="examples/oled-cards/summary-light.svg" width="400" alt="Amber summary">
+<img src="examples/oled-cards/languages-light.svg" width="400" alt="Amber languages">
+</p>
+
+**Green**: the same panel in green.
+
+```yaml
+style: oled
+color: green
+```
+
+<p align="center">
+<img src="examples/oled-cards/green/summary.svg" width="400" alt="Green summary">
+<img src="examples/oled-cards/green/languages.svg" width="400" alt="Green languages">
+</p>
+
+**Theme**: GitHub's own text and blue, on a transparent background; follows the viewer's light or dark theme.
+
+```yaml
+style: oled
+color: theme
+```
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="examples/oled-cards/theme/summary-dark.svg">
+  <img src="examples/oled-cards/theme/summary-light.svg" width="400" alt="Theme summary">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="examples/oled-cards/theme/languages-dark.svg">
+  <img src="examples/oled-cards/theme/languages-light.svg" width="400" alt="Theme languages">
+</picture>
+</p>
+
+**No matrix**: square pixels instead of round LEDs, in any colour.
+
+```yaml
+style: oled
+matrix: false
+color: amber
+```
+
+<p align="center">
+<img src="examples/oled-cards/no-matrix/summary.svg" width="400" alt="Summary without the matrix">
+<img src="examples/oled-cards/no-matrix/languages.svg" width="400" alt="Languages without the matrix">
+</p>
+
 ## Where the numbers come from
 
 - Commits, pull requests, issues, reviews: GitHub's contributions API, with the same rules as the contribution graph on your profile. Without the token's `read:user` scope it hides private work.
@@ -63,7 +145,7 @@ It asks before each change (`--dry-run` changes nothing), and does the steps bel
 </picture>
 ```
 
-Same for `contributions` (450 wide), `languages` and `weekly` (350). All cards are 195 tall: a wide and a narrow one sit side by side, and on a narrow screen they stack.
+Same for `contributions` (450 wide), `languages` and `weekly` (350). All cards are 195 tall: a wide and a narrow one sit side by side, and on a narrow screen they stack. OLED cards are all 450 by 195; show each at `width="400"` so two fit a row.
 
 ## Settings
 
@@ -71,6 +153,9 @@ Same for `contributions` (450 wide), `languages` and `weekly` (350). All cards a
 
 ```yaml
 user: null              # defaults to the token's owner
+style: classic          # or oled: pinball-style dot-matrix cards
+matrix: true            # oled only; false: square pixels instead of round LEDs
+color: amber            # oled only: amber, green or theme (GitHub's colours, light or dark)
 include:
   private: true
   orgs: true            # repos of organizations you belong to
@@ -80,7 +165,7 @@ theme:
   animations: true
 summary:
   title: null          # small, on the header line
-  ring: percent         # or github: the GitHub logo in the ring, the percentage in the header
+  ring: percent         # or github: the GitHub logo in the ring, the percentage in the title
 languages:
   title: Most used languages   # null hides it
   count: 6
@@ -98,7 +183,7 @@ weekly:
   title: Weekly rhythm
 ```
 
-Unknown settings are an error, so typos don't go unnoticed.
+`theme.background`, `theme.border` and `summary.title` apply to the classic cards only. Unknown settings are an error, so typos don't go unnoticed.
 
 ## Local development
 
@@ -107,6 +192,7 @@ Needs Node 22.18 or newer (TypeScript runs directly, no build step).
 ```bash
 GITHUB_TOKEN=$(gh auth token) npm run dev   # fetch, render to out/, write out/preview.html
 npm run dev:offline                          # re-render from the saved data, no API calls
+npm run preview:oled                         # every OLED look side by side, in out/display/
 npm test
 ```
 

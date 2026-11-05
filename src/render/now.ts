@@ -3,7 +3,7 @@ import type { NowModel } from '../compute.ts';
 import { icon } from './icons.ts';
 import { CARD_HEIGHT, CONTENT_TOP, FULL as WIDTH, PAD, SMALL, TEXT, card, esc, fadeIn, formatDay, headerText, plural, truncate, type Theme } from './svg.ts';
 
-const TEXT_WIDTH = 410;
+const TEXT_WIDTH = 530; // in textWidth's estimate, which runs wide: about 420px on screen
 const BARS_LEFT = 470;
 const BARS_RIGHT = WIDTH - PAD;
 const BASELINE = 148;
@@ -12,7 +12,7 @@ const MAX_BAR = 92;
 export function describeNow(n: NowModel): string {
   return [
     n.language?.name,
-    plural(n.stars, 'star'),
+    n.stars ? plural(n.stars, 'star') : null,
     n.release,
     `${plural(n.commits, 'commit')} in ${ACTIVITY_DAYS} days`,
   ].filter(Boolean).join(' · ');

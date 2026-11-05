@@ -49,6 +49,14 @@ describe('telemetry', () => {
     expect(t.days).toHaveLength(30);
   });
 
+  it('warns that the calendar cards ignore the include settings', () => {
+    const warned = (patch: (c: Config) => void) => model(patch).notes.some((n) => n.includes('cannot filter'));
+    expect(warned((c) => { c.include.private = false; c.cards = ['telemetry']; })).toBe(true);
+    expect(warned((c) => { c.include.orgs = false; c.cards = ['streaks']; })).toBe(true);
+    expect(warned((c) => { c.include.private = false; c.cards = ['summary']; })).toBe(false);
+    expect(warned((c) => (c.cards = ['telemetry']))).toBe(false);
+  });
+
   it('counts active public repos, without the profile repo', () => {
     const t = model().telemetry;
     expect(t.activeRepos).toBe(2);

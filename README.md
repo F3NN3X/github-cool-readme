@@ -142,7 +142,7 @@ cards: [summary, languages, projects, glance, releases, streaks, downloads, pull
 - Commits, pull requests, issues, reviews: GitHub's contributions API, with the same rules as the contribution graph on your profile. Without the token's `read:user` scope it hides private work.
 - Notable contributions: your list of pull requests.
 - Stars: the current total on your repos (forks left out), and how many of those were given in the last 12 months.
-- Active days, weekly rhythm: your contribution calendar. The `include` settings can't filter it.
+- Active days, weekly rhythm, telemetry, streaks: your contribution calendar. The `include` settings can't filter it, so these still count private and organization work when those are turned off.
 
 Repos you can no longer access (e.g. a former employer's) can't be counted.
 

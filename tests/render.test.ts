@@ -40,6 +40,20 @@ describe('cards', () => {
     }
   });
 
+  it('gives every card the same size', () => {
+    const sizes = Object.values(render()).map((svg) => svg.match(/<svg [^>]*width="(\d+)" height="(\d+)"/)!.slice(1).join('x'));
+    expect(new Set(sizes)).toEqual(new Set(['480x178']));
+  });
+
+  it('puts card titles on the header line, and hides them with null', () => {
+    const files = render();
+    expect(files['languages-light.svg']).toContain('>MOST USED LANGUAGES<');
+    expect(files['contributions-light.svg']).toContain('>NOTABLE CONTRIBUTIONS<');
+    const untitled = render((c) => { c.languages.title = null; c.contributions.title = null; });
+    expect(untitled['languages-light.svg']).not.toContain('class="col"');
+    expect(untitled['contributions-light.svg']).not.toContain('class="col"');
+  });
+
   it('escapes text', () => {
     const svg = render((c) => (c.summary.title = 'Tom & <Jerry>'))['summary-light.svg'];
     expect(svg).toContain('Tom &#38; &#60;Jerry&#62;');

@@ -8,7 +8,7 @@ languages:
   excludeRepos: [juca]
   other: false
 contributions:
-  count: 6
+  count: 4
   includeOpen: true
   hide: [anuraghazra/github-readme-stats]
 summary:

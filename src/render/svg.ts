@@ -38,6 +38,19 @@ export const THEMES: Record<Mode, Theme> = {
   },
 };
 
+// Every card has the same size, so they line up in a grid, and the same header line: small
+// uppercase text (a title, column names) at HEADER_Y, with the content starting at CONTENT_TOP.
+export const CARD_WIDTH = 480;
+export const CARD_HEIGHT = 178;
+export const PAD = 18;
+export const HEADER_Y = 29;
+export const CONTENT_TOP = 40;
+
+/** Small uppercase text on the header line, e.g. a card title or a column name. */
+export function headerText(text: string, x: number, anchor: 'start' | 'middle' | 'end' = 'start'): string {
+  return `<text x="${x}" y="${HEADER_Y}" class="col"${anchor === 'start' ? '' : ` text-anchor="${anchor}"`}>${esc(text.toUpperCase())}</text>`;
+}
+
 export const FONT = `-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif`;
 
 export function esc(s: string): string {
@@ -110,8 +123,7 @@ export function card(o: CardOptions): string {
   text { font-family: ${FONT}; fill: ${t.text}; }
   .label { font-size: 13px; }
   .value { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .head { font-size: 11px; fill: ${t.muted}; letter-spacing: 0.02em; }
-  .title { font-size: 15px; font-weight: 600; }
+  .col { font-size: 9px; fill: ${t.muted}; letter-spacing: 0.02em; }
   .secondary { fill: ${t.secondary}; }
   .muted { fill: ${t.muted}; }
   .icon { fill: ${t.secondary}; }${config.theme.animations ? ANIMATIONS : ''}${o.css ?? ''}

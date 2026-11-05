@@ -1,10 +1,14 @@
-// A local page showing every card on GitHub's light and dark backgrounds.
+// A local page showing the cards the way setup.sh lays them out in a profile README (two per
+// row at 49%, in a column as wide as GitHub's), on GitHub's light and dark backgrounds.
 export function previewHtml(files: string[]): string {
-  const cards = (mode: 'light' | 'dark') =>
-    files
-      .filter((f) => f.endsWith(`-${mode}.svg`))
-      .map((f) => `<figure><img src="${f}"><figcaption>${f}</figcaption></figure>`)
-      .join('\n');
+  const picture = (mode: 'light' | 'dark', card: string) =>
+    files.includes(`${card}-${mode}.svg`) ? `<img src="${card}-${mode}.svg" width="49%" alt="${card}">` : '';
+  const readme = (mode: 'light' | 'dark') => `
+<section class="${mode}"><div class="readme">
+<p align="center">${picture(mode, 'summary')}
+${picture(mode, 'languages')}</p>
+<p align="center">${picture(mode, 'contributions')}</p>
+</div></section>`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -12,20 +16,18 @@ export function previewHtml(files: string[]): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Card preview</title>
 <style>
-  body { margin: 0; font: 13px -apple-system, 'Segoe UI', sans-serif; }
-  section { padding: 24px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
-  .light { background: #ffffff; color: #59636e; }
-  .dark { background: #0d1117; color: #9198a1; }
-  figure { margin: 0; }
-  figcaption { margin-top: 6px; }
-  img { display: block; max-width: 100%; }
+  body { margin: 0; }
+  section { padding: 24px 16px; }
+  .readme { max-width: 830px; margin: 0 auto; }
+  .light { background: #ffffff; }
+  .dark { background: #0d1117; }
 </style>
 </head>
 <body>
-<section class="light">${cards('light')}</section>
-<section class="dark">${cards('dark')}</section>
+${readme('light')}
+${readme('dark')}
 <script>
-  // Reload the images so the animations play again: ?replay or press r.
+  // Press r to reload the images, so the animations play again.
   addEventListener('keydown', (e) => {
     if (e.key === 'r') document.querySelectorAll('img').forEach((i) => (i.src = i.src.split('?')[0] + '?' + Date.now()));
   });

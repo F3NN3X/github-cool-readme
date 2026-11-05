@@ -17,11 +17,13 @@ export interface Config {
     animations: boolean;
   };
   summary: {
+    /** Shown small and uppercase on the card's header line; null for none. */
     title: string | null;
-    /** What sits inside the activity ring: the percentage, or the GitHub logo (the percentage moves below). */
+    /** What sits inside the activity ring: the percentage, or the GitHub logo (the percentage moves to the header). */
     ring: 'percent' | 'github';
   };
   languages: {
+    title: string | null;
     count: number;
     exclude: string[];
     excludeRepos: string[];
@@ -31,6 +33,8 @@ export interface Config {
     other: boolean;
   };
   contributions: {
+    title: string | null;
+    /** How many repos to show; 4 fit the card's height. */
     count: number;
     includeOpen: boolean;
     /** Shown before the others, if they have a merged (or open) pull request of yours. */
@@ -44,8 +48,8 @@ export const DEFAULT_CONFIG: Config = {
   include: { private: true, orgs: true },
   theme: { background: 'transparent', border: false, animations: true },
   summary: { title: null, ring: 'percent' },
-  languages: { count: 6, exclude: [], excludeRepos: [], repoWeights: {}, other: true },
-  contributions: { count: 6, includeOpen: true, pin: [], hide: [] },
+  languages: { title: 'Most used languages', count: 6, exclude: [], excludeRepos: [], repoWeights: {}, other: true },
+  contributions: { title: 'Notable contributions', count: 4, includeOpen: true, pin: [], hide: [] },
 };
 
 export class ConfigError extends Error {}
@@ -58,13 +62,14 @@ const SHAPE: Shape = {
   theme: { background: 'string', border: 'boolean', animations: 'boolean' },
   summary: { title: 'string?', ring: 'string' },
   languages: {
+    title: 'string?',
     count: 'number',
     exclude: 'string[]',
     excludeRepos: 'string[]',
     repoWeights: 'weights',
     other: 'boolean',
   },
-  contributions: { count: 'number', includeOpen: 'boolean', pin: 'string[]', hide: 'string[]' },
+  contributions: { title: 'string?', count: 'number', includeOpen: 'boolean', pin: 'string[]', hide: 'string[]' },
 };
 
 function check(value: unknown, shape: Shape, path: string): void {

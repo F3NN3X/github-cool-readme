@@ -1,12 +1,13 @@
 import type { Config } from '../config.ts';
 import type { ContributionItem } from '../compute.ts';
 import { icon } from './icons.ts';
-import { card, esc, fadeIn, formatCompact, formatMonth, plural, textWidth, truncate, type Theme } from './svg.ts';
+import {
+  CARD_HEIGHT, CARD_WIDTH as WIDTH, CONTENT_TOP, PAD, card, esc, fadeIn, formatCompact, formatMonth, headerText, plural, textWidth, truncate, type Theme,
+} from './svg.ts';
 
-const WIDTH = 480;
-const PAD = 18;
-const ROW = 46;
-const AVATAR = 28;
+// Four rows fit the shared card height.
+const ROW = 33;
+const AVATAR = 26;
 
 export function describe(i: ContributionItem): string {
   const parts: string[] = [];
@@ -16,10 +17,12 @@ export function describe(i: ContributionItem): string {
 }
 
 export function renderContributions(items: ContributionItem[], theme: Theme, config: Config): string {
+  const title = config.contributions.title;
+  const header = title ? headerText(title, PAD) : '';
   if (!items.length) {
     return card({
-      width: WIDTH, height: 56, title: 'Notable contributions', desc: 'No contributions to other projects yet.', theme, config,
-      body: `<text x="${PAD}" y="33" class="label muted">No contributions to other projects yet</text>`,
+      width: WIDTH, height: CARD_HEIGHT, title: title ?? 'Notable contributions', desc: 'No contributions to other projects yet.', theme, config,
+      body: header + `<text x="${PAD}" y="${CONTENT_TOP + 14}" class="label muted">No contributions to other projects yet</text>`,
     });
   }
 
@@ -43,16 +46,16 @@ export function renderContributions(items: ContributionItem[], theme: Theme, con
           `<image href="${item.avatar}" width="${AVATAR}" height="${AVATAR}" clip-path="url(#av${i})"/>` +
           `<circle cx="${cx}" cy="${cx}" r="${cx - 0.5}" stroke="${theme.border}" fill="none"/>`
         : `<circle cx="${cx}" cy="${cx}" r="${cx}" fill="${theme.track}"/>` +
-          `<text x="${cx}" y="${cx + 5}" text-anchor="middle" class="value secondary">${esc(owner[0]?.toUpperCase() ?? '?')}</text>`;
+          `<text x="${cx}" y="${cx + 4.5}" text-anchor="middle" class="value secondary">${esc(owner[0]?.toUpperCase() ?? '?')}</text>`;
       return fadeIn(
         PAD,
-        14 + i * ROW,
+        CONTENT_TOP + i * ROW,
         i,
         avatar +
-          `<text x="${nameX - PAD}" y="12" class="label"><tspan class="secondary">${esc(ownerText)}</tspan><tspan style="font-weight: 600;">${esc(repoText)}</tspan></text>` +
-          `<text x="${nameX - PAD}" y="29" class="muted" style="font-size: 11.5px;">${esc(describe(item))}</text>` +
-          icon('star', starsRight - PAD - textWidth(stars, 12) - 20, 1, 14) +
-          `<text x="${starsRight - PAD}" y="12" class="value secondary" style="font-size: 12px;" text-anchor="end">${stars}</text>`,
+          `<text x="${nameX - PAD}" y="10.5" class="label"><tspan class="secondary">${esc(ownerText)}</tspan><tspan style="font-weight: 600;">${esc(repoText)}</tspan></text>` +
+          `<text x="${nameX - PAD}" y="24.5" class="muted" style="font-size: 11px;">${esc(describe(item))}</text>` +
+          icon('star', starsRight - PAD - textWidth(stars, 12) - 20, 6, 14) +
+          `<text x="${starsRight - PAD}" y="17" class="value secondary" style="font-size: 12px;" text-anchor="end">${stars}</text>`,
         config,
       );
     })
@@ -60,11 +63,11 @@ export function renderContributions(items: ContributionItem[], theme: Theme, con
 
   return card({
     width: WIDTH,
-    height: 14 + items.length * ROW - 2,
-    title: 'Notable contributions',
+    height: Math.max(CARD_HEIGHT, CONTENT_TOP + items.length * ROW + 5),
+    title: title ?? 'Notable contributions',
     desc: items.map((i) => `${i.repo} (${i.stars} stars): ${describe(i)}`).join('. '),
     theme,
     config,
-    body: rows,
+    body: header + rows,
   });
 }

@@ -1,26 +1,25 @@
 import type { Config } from '../config.ts';
 import type { LanguageItem } from '../compute.ts';
-import { card, esc, fadeIn, truncate, type Theme } from './svg.ts';
+import { CARD_HEIGHT, CARD_WIDTH, CONTENT_TOP, PAD, card, esc, fadeIn, headerText, truncate, type Theme } from './svg.ts';
 
-const WIDTH = 350;
-// Spacing as on the old github-readme-stats compact card.
-const PAD = 25;
-const BAR_Y = 25;
+const BAR_Y = CONTENT_TOP + 4;
 const BAR_H = 10;
 const GAP = 2;
-const LEGEND_TOP = 52;
+const LEGEND_TOP = BAR_Y + BAR_H + 26;
 const LEGEND_ROW = 28;
 
 const pct = (p: number) => `${p < 0.1 ? '<0.1' : p.toFixed(1)}%`;
 
 export function renderLanguages(items: LanguageItem[], theme: Theme, config: Config): string {
-  const barWidth = WIDTH - 2 * PAD;
+  const title = config.languages.title;
+  const header = title ? headerText(title, PAD) : '';
+  const barWidth = CARD_WIDTH - 2 * PAD;
   const colorOf = (l: LanguageItem) => l.color ?? theme.neutral;
 
   if (!items.length) {
     return card({
-      width: WIDTH, height: 56, title: 'Languages', desc: 'No language data.', theme, config,
-      body: `<text x="${PAD}" y="33" class="label muted">No language data yet</text>`,
+      width: CARD_WIDTH, height: CARD_HEIGHT, title: title ?? 'Languages', desc: 'No language data.', theme, config,
+      body: header + `<text x="${PAD}" y="${CONTENT_TOP + 14}" class="label muted">No language data yet</text>`,
     });
   }
 
@@ -62,12 +61,12 @@ export function renderLanguages(items: LanguageItem[], theme: Theme, config: Con
 
   const rows = Math.ceil(items.length / 2);
   return card({
-    width: WIDTH,
-    height: LEGEND_TOP + rows * LEGEND_ROW + 8,
-    title: 'Most used languages',
+    width: CARD_WIDTH,
+    height: Math.max(CARD_HEIGHT, LEGEND_TOP + (rows - 1) * LEGEND_ROW + 26),
+    title: title ?? 'Most used languages',
     desc: items.map((l) => `${l.name} ${pct(l.percent)}`).join(', '),
     theme,
     config,
-    body: bar + '\n' + legend,
+    body: header + bar + '\n' + legend,
   });
 }

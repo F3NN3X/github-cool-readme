@@ -34,11 +34,11 @@ It asks before each change (`--dry-run` changes nothing), and does the steps bel
 ```html
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="stats/summary-dark.svg">
-  <img src="stats/summary-light.svg" width="480" alt="GitHub stats">
+  <img src="stats/summary-light.svg" width="49%" alt="GitHub stats">
 </picture>
 ```
 
-Same for `languages` (width 350) and `contributions` (width 480).
+Same for `languages` and `contributions`. All cards have the same size, so at `49%` two sit side by side.
 
 ## Settings
 
@@ -54,16 +54,18 @@ theme:
   border: false
   animations: true
 summary:
-  title: null
-  ring: percent         # or github: the GitHub logo in the ring, the percentage below it
+  title: null          # small, on the header line
+  ring: percent         # or github: the GitHub logo in the ring, the percentage in the header
 languages:
+  title: Most used languages   # null hides it
   count: 6
   exclude: []           # language names; their share is dropped
   excludeRepos: []      # "repo" for your own, "owner/repo" otherwise
   repoWeights: {}       # repo: multiplier; 0 leaves it out
   other: true           # fold the rest into "Other"; false: the shown ones share 100%
 contributions:
-  count: 6
+  title: Notable contributions
+  count: 4             # 4 keep this card the same size as the others
   includeOpen: true
   pin: []               # shown first; pull requests closed without merging never count
   hide: []

@@ -1,7 +1,7 @@
 import type { Config } from '../config.ts';
 import type { CountKey, SummaryModel } from '../compute.ts';
 import { icon, type IconName } from './icons.ts';
-import { card, esc, fadeIn, formatNumber, type Theme } from './svg.ts';
+import { CARD_HEIGHT, CARD_WIDTH, CONTENT_TOP, PAD, card, esc, fadeIn, formatNumber, headerText, type Theme } from './svg.ts';
 
 const ICONS: Record<CountKey, IconName> = {
   commits: 'git-commit',
@@ -10,7 +10,6 @@ const ICONS: Record<CountKey, IconName> = {
   issues: 'issue-opened',
 };
 
-const WIDTH = 480;
 const ROW = 26;
 const COL_12 = 216; // right edge of the "12 months" column
 const COL_ALL = 298; // right edge of the "All time" column
@@ -19,17 +18,18 @@ const RADIUS = 40;
 const LOGO = 66; // GitHub mark: nearly fills the ring, as on the old github-readme-stats card
 
 export function renderSummary(m: SummaryModel, theme: Theme, config: Config): string {
-  const top = m.title ? 46 : 18;
   const rows = [
     ...m.rows.map((r) => ({ icon: ICONS[r.key], label: r.label, last12: formatNumber(r.last12Months), all: formatNumber(r.allTime) })),
     { icon: 'star' as IconName, label: 'Stars earned', last12: formatNumber(m.stars.last12Months), all: formatNumber(m.stars.allTime) },
   ];
-  const tableTop = top + 22;
+  const tableTop = CONTENT_TOP;
   const height = tableTop + rows.length * ROW + 8;
 
   const header =
-    `<text x="${COL_12}" y="${top + 11}" class="col" text-anchor="end">YEAR</text>` +
-    `<text x="${COL_ALL}" y="${top + 11}" class="col" text-anchor="end">ALL TIME</text>`;
+    (m.title ? headerText(m.title, PAD) : '') +
+    headerText('Year', COL_12, 'end') +
+    headerText('All time', COL_ALL, 'end') +
+    headerText(`${m.ring === 'github' ? `${m.activity.percent}% ` : ''}Active days`, RING_X, 'middle');
 
   const body = rows
     .map((r, i) =>
@@ -60,11 +60,10 @@ ${
     ? // The mark is a circle cut off at the bottom; in its 24px drawing that circle's centre is (12, 12.5).
       `<g class="pop">${icon('mark-github', RING_X - (12 * LOGO) / 24, cy - (12.5 * LOGO) / 24, LOGO, 'logo')}</g>`
     : `<g class="pop"><text x="${RING_X}" y="${cy + 7}" text-anchor="middle" style="font-size: 20px; font-weight: 700;">${m.activity.percent}%</text></g>`
-}
-<text x="${RING_X}" y="${top + 11}" text-anchor="middle" class="col">${m.ring === 'github' ? `${m.activity.percent}% ` : ''}ACTIVE DAYS</text>`;
+}`;
 
   const css =
-    `\n  .logo { fill: ${theme.text}; }\n  .col { font-size: 9px; fill: ${theme.muted}; letter-spacing: 0.02em; }` +
+    `\n  .logo { fill: ${theme.text}; }` +
     (config.theme.animations ? `\n  @keyframes ring { from { stroke-dashoffset: ${circumference.toFixed(2)}; } }` : '');
 
   const desc = [
@@ -74,13 +73,13 @@ ${
   ].join(' ');
 
   return card({
-    width: WIDTH,
-    height: Math.max(height, cy + RADIUS + 10),
+    width: CARD_WIDTH,
+    height: Math.max(CARD_HEIGHT, height, cy + RADIUS + 10),
     title: m.title ?? 'GitHub stats',
     desc,
     theme,
     config,
     css,
-    body: (m.title ? `<text x="18" y="28" class="title">${esc(m.title)}</text>\n` : '') + header + '\n' + body + ring,
+    body: header + '\n' + body + ring,
   });
 }

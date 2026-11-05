@@ -77,7 +77,6 @@ die() { # die what [what to do]: a red line, a hint, and stop
   framed 31 "Stopped: nothing after this step was changed."
   exit 1
 }
-beep() { if $HAVE_TTY; then printf '\a' > /dev/tty; fi; }
 
 yesno() { # yesno "Question" default(y|n) [d]: one key, no Enter. Returns 0 yes, 1 no, 2 show the diff (with d).
   local question="$1" def="$2" hint key answer
@@ -370,32 +369,105 @@ else
   if yesno "Update it?" y; then cp "$wanted" "$WORKFLOW"; report updated "$WORKFLOW, on $REF"; else report kept "your $WORKFLOW"; fi
 fi
 
-WAITED=false
+# ------------------------------------------------------------------ README
+
+# Prepared here, before the commit, so every question is answered before the long wait for the
+# first run. Until the cards exist the README would show broken images, so on a new setup the
+# README is committed by itself once the first run has made them.
+section "README"
+picture() { # picture card width alt
+  printf '<picture>\n  <source media="(prefers-color-scheme: dark)" srcset="%s/%s-dark.svg">\n  <img src="%s/%s-light.svg" width="%s" alt="%s">\n</picture>\n' \
+    "$OUT" "$1" "$OUT" "$1" "$2" "$3"
+}
+block="$(mktemp)"
+{
+  echo "$START"
+  echo '<p align="center">'
+  picture summary "$WIDE" "GitHub stats"
+  picture languages "$NARROW" "Most used languages"
+  echo '</p>'
+  echo '<p align="center">'
+  picture contributions "$WIDE" "Notable contributions"
+  picture weekly "$NARROW" "Weekly rhythm"
+  echo '</p>'
+  echo "$END"
+} > "$block"
+
+HAD_README=false
+[ -f README.md ] && HAD_README=true
+touch README.md
+if grep -qF "$START" README.md && grep -qF "$END" README.md; then
+  # Replace only what's between the markers.
+  awk -v start="$START" -v end="$END" -v block="$block" '
+    $0 == start { while ((getline line < block) > 0) print line; skip = 1; next }
+    $0 == end { skip = 0; next }
+    !skip { print }' README.md > README.md.new
+  mv README.md.new README.md
+  where="between the cool-readme markers"
+else
+  { [ -s README.md ] && echo; cat "$block"; } >> README.md
+  where="at the end; move the marked block wherever you like"
+fi
+git add -N README.md # so a new README shows in the diff too
+README_LATER=false # true: the README change waits for the first run's cards
+if git diff --quiet README.md; then
+  report ok "the cards $where"
+elif [ -f "$OUT/summary-light.svg" ]; then
+  report updated "the cards $where, ${WIDE} and ${NARROW} wide"
+else
+  README_LATER=true
+  git --no-pager -c color.ui="$($COLOUR && echo always || echo never)" diff README.md > "$WORK/readme.diff"
+  cp README.md "$WORK/README.next"
+  git reset --quiet README.md
+  if $HAD_README; then git checkout --quiet -- README.md; else rm -f README.md; fi
+  report updated "the cards $where, ${WIDE} and ${NARROW} wide"
+  note "$(paint 2 'committed by itself once the first run has made the cards')"
+fi
+if grep -q 'github-readme-stats' README.md "$WORK/README.next" 2>/dev/null; then
+  note "$(paint 33 'README.md still has github-readme-stats images; remove them if these cards replace them')"
+fi
+
+# ------------------------------------------------------------------ commit
+
 commit_and_push() { # commit_and_push "message": asks first; d shows exactly what would be committed
-  local answer
+  local answer question
   git add -A
-  git diff --cached --quiet && return 1
+  git diff --cached --quiet && ! $README_LATER && return 1
   if $DRY_RUN; then
     git --no-pager diff --cached --stat | sed "s/^/$INDENT/"
     git --no-pager diff --cached
+    $README_LATER && cat "$WORK/readme.diff"
     report "dry run" "would commit \"$1\" and push"
-    git commit --quiet -m "$1" # only in the throwaway clone, so the next step shows just its own changes
+    $README_LATER && report "dry run" "would commit the README once the cards exist"
     return 0
   fi
-  # After the long wait for the first run, beep so the question doesn't go unnoticed.
-  $WAITED && beep
+  question="Commit \"$1\" and push?"
+  if $README_LATER; then
+    question="Commit \"$1\" and push, and the README once the cards exist?"
+    git diff --cached --quiet && question="Commit the README once the cards exist?"
+  fi
   while :; do
     answer=0
-    yesno "Commit \"$1\" and push?" y d || answer=$?
+    yesno "$question" y d || answer=$?
     [ "$answer" = 2 ] || break
     git --no-pager -c color.ui="$($COLOUR && echo always || echo never)" diff --cached
+    $README_LATER && cat "$WORK/readme.diff"
   done
   [ "$answer" = 0 ] || die "nothing was pushed" "run this again when you're ready"
-  git commit --quiet -m "$1"
-  git push --quiet
-  report pushed "$1"
+  if ! git diff --cached --quiet; then
+    git commit --quiet -m "$1"
+    git push --quiet
+    report pushed "$1"
+  fi
 }
-if $NEW_SETUP; then msg="Add README cards workflow"; else msg="Update README cards workflow and settings"; fi
+# The message names what changed.
+git add -A
+parts=""
+for f in "$WORKFLOW:workflow" "$CONFIG:settings" "README.md:README"; do
+  git diff --cached --quiet -- "${f%%:*}" || parts="${parts:+$parts, }${f##*:}"
+done
+parts="$(printf '%s' "$parts" | sed 's/\(.*\), /\1 and /')"
+if $NEW_SETUP; then msg="Add README cards: $parts"; else msg="Update README cards: $parts"; fi
 commit_and_push "$msg" || true
 
 # ------------------------------------------------------------------ first run
@@ -441,52 +513,15 @@ else
     || die "the workflow failed" "see: gh run view $run_id -R $PROFILE --log-failed"
   git pull --quiet
   report generated "the cards, in $OUT/"
-  WAITED=true
+  if $README_LATER; then
+    # Already agreed to above: the cards exist now, so the README can show them.
+    cp "$WORK/README.next" README.md
+    git add README.md
+    git commit --quiet -m "Show README cards"
+    git push --quiet
+    report pushed "Show README cards"
+  fi
 fi
-
-# ------------------------------------------------------------------ README
-
-section "README"
-picture() { # picture card width alt
-  printf '<picture>\n  <source media="(prefers-color-scheme: dark)" srcset="%s/%s-dark.svg">\n  <img src="%s/%s-light.svg" width="%s" alt="%s">\n</picture>\n' \
-    "$OUT" "$1" "$OUT" "$1" "$2" "$3"
-}
-block="$(mktemp)"
-{
-  echo "$START"
-  echo '<p align="center">'
-  picture summary "$WIDE" "GitHub stats"
-  picture languages "$NARROW" "Most used languages"
-  echo '</p>'
-  echo '<p align="center">'
-  picture contributions "$WIDE" "Notable contributions"
-  picture weekly "$NARROW" "Weekly rhythm"
-  echo '</p>'
-  echo "$END"
-} > "$block"
-
-touch README.md
-if grep -qF "$START" README.md && grep -qF "$END" README.md; then
-  # Replace only what's between the markers.
-  awk -v start="$START" -v end="$END" -v block="$block" '
-    $0 == start { while ((getline line < block) > 0) print line; skip = 1; next }
-    $0 == end { skip = 0; next }
-    !skip { print }' README.md > README.md.new
-  mv README.md.new README.md
-  where="between the cool-readme markers"
-else
-  { [ -s README.md ] && echo; cat "$block"; } >> README.md
-  where="at the end; move the marked block wherever you like"
-fi
-if git diff --quiet README.md; then
-  report ok "the cards $where"
-else
-  report updated "the cards $where, ${WIDE} and ${NARROW} wide"
-fi
-if grep -q 'github-readme-stats' README.md; then
-  note "$(paint 33 'README.md still has github-readme-stats images; remove them if these cards replace them')"
-fi
-commit_and_push "Show README cards" || true
 
 # ------------------------------------------------------------------ done
 

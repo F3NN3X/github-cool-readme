@@ -1,6 +1,6 @@
-import { repoKey, type Config } from './config.ts';
+import { ACTIVITY_DAYS, repoKey, type Config } from './config.ts';
 import { fetchDataUri, type Client } from './github.ts';
-import type { ContributionWindow, PullRequest, PullRequestState, Repo, RepoCounts, Snapshot } from './types.ts';
+import type { ContributionWindow, PublicRepo, PullRequest, PullRequestState, Repo, RepoCounts, Snapshot } from './types.ts';
 
 // Commits, pull requests, issues, reviews and the calendar come from GitHub's contributions API,
 // with the same rules as the contribution graph on your profile. It only includes private and
@@ -76,6 +76,32 @@ interface ContributionsResult {
   };
 }
 
+interface RawPublicRepo {
+  nameWithOwner: string;
+  description: string | null;
+  isArchived: boolean;
+  stargazerCount: number;
+  primaryLanguage: { name: string; color: string | null } | null;
+  defaultBranchRef: {
+    target: { history?: { totalCount: number; nodes: { committedDate: string; messageHeadline: string }[] } } | null;
+  } | null;
+}
+
+const PUBLIC_REPOS_QUERY = `
+query($login: String!, $after: String, $id: ID!, $since: GitTimestamp!) {
+  user(login: $login) {
+    repositories(first: 100, after: $after, ownerAffiliations: OWNER, privacy: PUBLIC, isFork: false) {
+      pageInfo { hasNextPage endCursor }
+      nodes {
+        nameWithOwner description isArchived stargazerCount primaryLanguage { name color }
+        defaultBranchRef { target { ... on Commit {
+          history(first: 1, since: $since, author: { id: $id }) { totalCount nodes { committedDate messageHeadline } }
+        } } }
+      }
+    }
+  }
+}`;
+
 const DAY = 24 * 60 * 60 * 1000;
 
 /** The last 365 days, today included. */
@@ -142,8 +168,8 @@ export async function collect(client: Client, config: Config, log: (msg: string)
     log(`note: the token belongs to ${viewer.login}, so only ${login}'s public work is visible`);
   }
   const { user } = await client.query<{
-    user: { login: string; name: string | null; createdAt: string; organizations: { nodes: { login: string }[] } } | null;
-  }>(`query($login: String!) { user(login: $login) { login name createdAt organizations(first: 100) { nodes { login } } } }`, { login });
+    user: { id: string; login: string; name: string | null; createdAt: string; organizations: { nodes: { login: string }[] } } | null;
+  }>(`query($login: String!) { user(login: $login) { id login name createdAt organizations(first: 100) { nodes { login } } } }`, { login });
   if (!user) throw new Error(`GitHub user "${login}" not found`);
   login = user.login;
   const orgs = user.organizations.nodes.map((o) => o.login.toLowerCase());
@@ -290,10 +316,37 @@ export async function collect(client: Client, config: Config, log: (msg: string)
     if (uri) avatars[owner] = uri;
   });
 
+  // Your public repos, with your latest commit: only the cards that show them need this.
+  const publicRepos: PublicRepo[] = [];
+  if (config.cards.includes('projects') || config.cards.includes('activity')) {
+    const commitsSince = new Date(now.getTime() - ACTIVITY_DAYS * DAY).toISOString();
+    for (let after: string | null = null; ; ) {
+      const res: { user: { repositories: { pageInfo: PageInfo; nodes: RawPublicRepo[] } } } = await client.query(PUBLIC_REPOS_QUERY, {
+        login, after, id: user.id, since: commitsSince,
+      });
+      for (const r of res.user.repositories.nodes) {
+        const history = r.defaultBranchRef?.target?.history;
+        const last = history?.nodes[0];
+        publicRepos.push({
+          nameWithOwner: r.nameWithOwner,
+          description: r.description,
+          isArchived: r.isArchived,
+          stars: r.stargazerCount,
+          language: r.primaryLanguage,
+          recentCommits: history?.totalCount ?? 0,
+          lastCommit: last ? { date: last.committedDate, message: last.messageHeadline } : null,
+        });
+      }
+      if (!res.user.repositories.pageInfo.hasNextPage) break;
+      after = res.user.repositories.pageInfo.endCursor;
+    }
+    log(`${publicRepos.length} public repositories`);
+  }
+
   for (const w of client.warnings) log(`warning: ${w}`);
 
   return {
-    version: 4,
+    version: 5,
     generatedAt: now.toISOString(),
     user: { login, name: user.name, createdAt: user.createdAt },
     orgs,
@@ -304,6 +357,7 @@ export async function collect(client: Client, config: Config, log: (msg: string)
     allTime,
     calendar,
     pullRequests,
+    publicRepos,
     avatars,
   };
 }

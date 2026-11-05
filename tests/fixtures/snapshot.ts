@@ -1,4 +1,4 @@
-import type { ContributionWindow, PullRequest, Repo, RepoCounts, Snapshot } from '../../src/types.ts';
+import type { ContributionWindow, PublicRepo, PullRequest, Repo, RepoCounts, Snapshot } from '../../src/types.ts';
 
 const repo = (nameWithOwner: string, extra: Partial<Repo> = {}): Repo => ({
   nameWithOwner,
@@ -8,6 +8,17 @@ const repo = (nameWithOwner: string, extra: Partial<Repo> = {}): Repo => ({
   isFork: false,
   stars: 0,
   languages: [],
+  ...extra,
+});
+
+const publicRepo = (nameWithOwner: string, extra: Partial<PublicRepo> = {}): PublicRepo => ({
+  nameWithOwner,
+  description: null,
+  isArchived: false,
+  stars: 0,
+  language: null,
+  recentCommits: 0,
+  lastCommit: null,
   ...extra,
 });
 
@@ -44,7 +55,7 @@ export function fixture(): Snapshot {
   };
   const dec2025 = { 'octo/game': { commits: 10, pullRequests: 1 } };
   return {
-    version: 4,
+    version: 5,
     generatedAt: '2026-11-04T12:00:00Z',
     user: { login: 'octo', name: 'Octo', createdAt: '2015-03-01T00:00:00Z' },
     orgs: ['acme'],
@@ -99,6 +110,23 @@ export function fixture(): Snapshot {
       pr('old/archive', '2018-10-01T00:00:00Z', 'CLOSED'),
       pr('old/archive', '2018-11-01T00:00:00Z', 'CLOSED'),
       pr('hidden/private', '2026-02-01T00:00:00Z', 'MERGED', '2026-02-02T00:00:00Z'),
+    ],
+    publicRepos: [
+      publicRepo('octo/game', {
+        description: 'A game\n of sorts',
+        stars: 120,
+        language: { name: 'C', color: '#555555' },
+        recentCommits: 3,
+        lastCommit: { date: '2026-10-01T10:00:00Z', message: 'add levels' },
+      }),
+      publicRepo('octo/tool-b', { stars: 9 }),
+      publicRepo('octo/tool-a', {
+        stars: 2,
+        recentCommits: 1,
+        lastCommit: { date: '2026-11-03T10:00:00Z', message: 'fix <script> tag' },
+      }),
+      publicRepo('octo/octo', { stars: 500, recentCommits: 9, lastCommit: { date: '2026-11-04T10:00:00Z', message: 'Update README cards' } }),
+      publicRepo('octo/old', { stars: 200, isArchived: true }),
     ],
     avatars: { big: 'data:image/png;base64,AAAA' },
   };

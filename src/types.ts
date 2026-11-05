@@ -47,8 +47,20 @@ export interface PullRequest {
   mergedAt: string | null;
 }
 
+/** One of your public, non-fork repos, for the projects and activity cards. */
+export interface PublicRepo {
+  nameWithOwner: string;
+  description: string | null;
+  isArchived: boolean;
+  stars: number;
+  language: { name: string; color: string | null } | null;
+  /** Your commits on the default branch in the last ACTIVITY_DAYS days. */
+  recentCommits: number;
+  lastCommit: { date: string; message: string } | null;
+}
+
 export interface Snapshot {
-  version: 4;
+  version: 5;
   generatedAt: string;
   user: { login: string; name: string | null; createdAt: string };
   /** Organizations the user belongs to (lowercase logins). */
@@ -66,6 +78,8 @@ export interface Snapshot {
   calendar: { date: string; count: number }[];
   /** Every pull request you opened, for the notable contributions card. */
   pullRequests: PullRequest[];
+  /** Empty unless the projects or activity card is on. */
+  publicRepos: PublicRepo[];
   /** Owner login (lowercase) -> data: URI of the avatar. */
   avatars: Record<string, string>;
 }

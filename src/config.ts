@@ -1,8 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 
-export const CARDS = ['summary', 'languages', 'contributions', 'weekly'] as const;
+export const CARDS = ['summary', 'languages', 'contributions', 'weekly', 'projects', 'glance', 'activity', 'years'] as const;
 export type Card = (typeof CARDS)[number];
+
+/** The cards made when the settings don't say. */
+export const DEFAULT_CARDS: Card[] = ['summary', 'languages', 'contributions', 'weekly'];
+/** These have no OLED version. */
+export const CLASSIC_ONLY_CARDS: Card[] = ['projects', 'glance', 'activity', 'years'];
+/** How far back the activity card looks. */
+export const ACTIVITY_DAYS = 30;
 
 export interface Config {
   /** GitHub login. Defaults to the token's owner. */
@@ -57,11 +64,37 @@ export interface Config {
   weekly: {
     title: string | null;
   };
+  projects: {
+    title: string | null;
+    /** How many repos to show; 3 are in view at a time, the rest scroll past in a loop. */
+    count: number;
+    /** Shown first, in this order; the other places go to the most starred. */
+    pin: string[];
+    hide: string[];
+  };
+  activity: {
+    title: string | null;
+    /** How many repos to show; 3 are in view at a time, the rest scroll past in a loop. */
+    count: number;
+    hide: string[];
+  };
+  years: {
+    title: string | null;
+    /** How many years to show, newest first. Three fit the card. */
+    count: number;
+    /** Year -> a short note shown next to it. */
+    milestones: Record<string, string>;
+  };
+  glance: {
+    title: string | null;
+    /** An extra tile: your public repos whose name starts with this prefix. */
+    counter: { label: string | null; prefix: string | null };
+  };
 }
 
 export const DEFAULT_CONFIG: Config = {
   user: null,
-  cards: [...CARDS],
+  cards: [...DEFAULT_CARDS],
   style: 'classic',
   matrix: true,
   color: 'amber',
@@ -72,11 +105,15 @@ export const DEFAULT_CONFIG: Config = {
   languages: { title: 'Most used languages', count: 6, exclude: [], excludeRepos: [], repoWeights: {}, other: true },
   contributions: { title: 'Notable contributions', count: 6, includeOpen: true, pin: [], hide: [] },
   weekly: { title: 'Weekly rhythm' },
+  projects: { title: 'Projects', count: 6, pin: [], hide: [] },
+  activity: { title: 'Recent activity', count: 6, hide: [] },
+  years: { title: 'Year by year', count: 3, milestones: {} },
+  glance: { title: 'At a glance', counter: { label: null, prefix: null } },
 };
 
 export class ConfigError extends Error {}
 
-type Shape = { [key: string]: 'boolean' | 'string' | 'string?' | 'number' | 'string[]' | 'weights' | Shape };
+type Shape = { [key: string]: 'boolean' | 'string' | 'string?' | 'number' | 'string[]' | 'weights' | 'strings' | Shape };
 
 const SHAPE: Shape = {
   user: 'string?',
@@ -98,6 +135,10 @@ const SHAPE: Shape = {
   },
   contributions: { title: 'string?', count: 'number', includeOpen: 'boolean', pin: 'string[]', hide: 'string[]' },
   weekly: { title: 'string?' },
+  projects: { title: 'string?', count: 'number', pin: 'string[]', hide: 'string[]' },
+  activity: { title: 'string?', count: 'number', hide: 'string[]' },
+  years: { title: 'string?', count: 'number', milestones: 'strings' },
+  glance: { title: 'string?', counter: { label: 'string?', prefix: 'string?' } },
 };
 
 function check(value: unknown, shape: Shape, path: string): void {
@@ -120,12 +161,15 @@ function check(value: unknown, shape: Shape, path: string): void {
       : expected === 'string?' ? v === null || typeof v === 'string'
       : expected === 'number' ? typeof v === 'number' && Number.isInteger(v) && v > 0
       : expected === 'string[]' ? Array.isArray(v) && v.every((s) => typeof s === 'string')
+      : expected === 'strings' ? typeof v === 'object' && v !== null && !Array.isArray(v) &&
+        Object.values(v).every((s) => typeof s === 'string')
       : typeof v === 'object' && v !== null && !Array.isArray(v) &&
         Object.values(v).every((n) => typeof n === 'number' && n >= 0);
     if (!ok) {
       const what = expected === 'weights' ? 'a mapping of repo to a number >= 0'
         : expected === 'number' ? 'a positive whole number'
         : expected === 'string[]' ? 'a list of strings'
+        : expected === 'strings' ? 'a mapping of strings'
         : expected === 'string?' ? 'a string'
         : `a ${expected}`;
       throw new ConfigError(`"${where}" must be ${what}`);
@@ -167,6 +211,11 @@ export function parseConfig(text: string): Config {
   }
   if (config.cards.length === 0) throw new ConfigError('"cards" must name at least one card');
   if (new Set(config.cards).size !== config.cards.length) throw new ConfigError('"cards" names a card twice');
+  if (config.style === 'oled') {
+    for (const card of config.cards) {
+      if (CLASSIC_ONLY_CARDS.includes(card)) throw new ConfigError(`"cards" has "${card}", which only comes in the classic style`);
+    }
+  }
   if (config.summary.ring !== 'percent' && config.summary.ring !== 'github') {
     throw new ConfigError('"summary.ring" must be "percent" or "github"');
   }

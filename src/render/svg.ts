@@ -90,6 +90,11 @@ export function formatMonth(iso: string): string {
   return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
+export function formatDay(iso: string): string {
+  const d = new Date(iso);
+  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+}
+
 /** Rough text width for the card fonts, to truncate long names. */
 export function textWidth(s: string, fontSize: number, bold = false): number {
   return s.length * fontSize * (bold ? 0.6 : 0.56);

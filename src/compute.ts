@@ -36,11 +36,40 @@ export interface WeekdayItem {
   count: number;
 }
 
+export interface ProjectItem {
+  repo: string;
+  description: string | null;
+  stars: number;
+  language: { name: string; color: string | null } | null;
+}
+
+export interface ActivityItem {
+  repo: string;
+  commits: number;
+  date: string;
+  message: string;
+}
+
+export interface YearItem {
+  year: string;
+  contributions: number;
+  milestone: string | null;
+}
+
+export interface GlanceItem {
+  label: string;
+  value: number;
+}
+
 export interface Model {
   summary: SummaryModel;
   languages: LanguageItem[];
   contributions: ContributionItem[];
   weekly: WeekdayItem[];
+  projects: ProjectItem[];
+  activity: ActivityItem[];
+  years: YearItem[];
+  glance: GlanceItem[];
   /** Things the user should know, e.g. config entries that matched nothing. */
   notes: string[];
 }
@@ -53,6 +82,11 @@ const ROW_LABELS: Record<CountKey, string> = {
 };
 
 const FIELDS = ['commits', 'pullRequests', 'reviews', 'issues'] as const;
+
+/** GitHub text can hold control characters, which SVG can't. */
+const clean = (s: string): string => s.replace(/[\u0000-\u001f\u007f]/g, ' ').trim();
+
+const repoName = (nameWithOwner: string): string => nameWithOwner.split('/')[1] ?? nameWithOwner;
 
 export function compute(snapshot: Snapshot, config: Config): Model {
   const notes: string[] = [];
@@ -221,5 +255,62 @@ export function compute(snapshot: Snapshot, config: Config): Model {
     weekly[(sundayFirst + 6) % 7].count += d.count;
   }
 
-  return { summary, languages, contributions, weekly, notes };
+  // Projects and activity: your public repos, without the profile repo itself.
+  const publicRepos = snapshot.publicRepos.filter((r) => r.nameWithOwner.toLowerCase() !== `${login}/${login}`);
+  const pc = config.projects;
+  const projectPins = [...known(pc.pin, 'projects.pin')];
+  const projectsHidden = known(pc.hide, 'projects.hide');
+  const pinPlace = (key: string) => {
+    const at = projectPins.indexOf(key);
+    return at < 0 ? projectPins.length : at;
+  };
+  const projects: ProjectItem[] = publicRepos
+    .filter((r) => !r.isArchived && !projectsHidden.has(r.nameWithOwner.toLowerCase()))
+    .sort((a, b) => pinPlace(a.nameWithOwner.toLowerCase()) - pinPlace(b.nameWithOwner.toLowerCase()) || b.stars - a.stars)
+    .slice(0, pc.count)
+    .map((r) => ({
+      repo: repoName(r.nameWithOwner),
+      description: r.description ? clean(r.description) : null,
+      stars: r.stars,
+      language: r.language,
+    }));
+
+  const activityHidden = known(config.activity.hide, 'activity.hide');
+  const activity: ActivityItem[] = publicRepos
+    .flatMap((r) =>
+      r.lastCommit && r.recentCommits && !activityHidden.has(r.nameWithOwner.toLowerCase())
+        ? [{ repo: repoName(r.nameWithOwner), commits: r.recentCommits, date: r.lastCommit.date, message: clean(r.lastCommit.message) }]
+        : [],
+    )
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, config.activity.count);
+
+  // Year by year: the summary's four counts added up, per calendar year.
+  const contributionsIn = (windows: ContributionWindow[]) => Object.values(counts(windows)).reduce((s, n) => s + n, 0);
+  const years: YearItem[] = snapshot.allTime
+    .map((w) => {
+      const year = w.from.slice(0, 4);
+      return { year, contributions: contributionsIn([w]), milestone: config.years.milestones[year] ?? null };
+    })
+    .filter((y) => y.contributions > 0)
+    .reverse()
+    .slice(0, config.years.count);
+
+  // At a glance: totals only, so private repos are counted but never named.
+  const owned = snapshot.ownedRepos.filter((k) => included(k) && !snapshot.repos[k].isFork);
+  const publicOwned = owned.filter((k) => !snapshot.repos[k].isPrivate);
+  const { label, prefix } = config.glance.counter;
+  const touched = new Set(Object.keys(snapshot.repos).filter(included).flatMap((k) => snapshot.repos[k].languages.map((l) => l.name)));
+  const glance: GlanceItem[] = [
+    { label: 'Repositories', value: owned.length },
+    { label: 'Public repos', value: publicOwned.length },
+    ...(label && prefix
+      ? [{ label, value: publicOwned.filter((k) => repoName(snapshot.repos[k].nameWithOwner).toLowerCase().startsWith(prefix.toLowerCase())).length }]
+      : []),
+    { label: 'Stars earned', value: summary.stars.allTime },
+    { label: 'Languages', value: touched.size },
+    { label: 'Contributions', value: contributionsIn(snapshot.allTime) },
+  ];
+
+  return { summary, languages, contributions, weekly, projects, activity, years, glance, notes };
 }

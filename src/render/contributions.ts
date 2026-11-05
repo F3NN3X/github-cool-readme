@@ -7,9 +7,9 @@ import {
 } from './svg.ts';
 
 const VISIBLE = 3; // rows in view; more scroll past in a loop
-const ROW = 46;
+export const ROW = 46;
 const AVATAR = 30;
-const TOP = CONTENT_TOP - 2;
+export const TOP = CONTENT_TOP - 2;
 const HOLD = 3.5; // seconds each page stays in view
 const MOVE = 0.8; // seconds to scroll to the next page
 
@@ -37,6 +37,21 @@ function scrollKeyframes(offsets: number[]): { css: string; seconds: number } {
   const frames = offsets.map((y, i) => `${pct(i * step)}, ${pct(i * step + HOLD)} { transform: translateY(-${y}px); }`);
   frames.push('100% { transform: translateY(0); }');
   return { css: `\n  @keyframes scroll { ${frames.join(' ')} }`, seconds };
+}
+
+/**
+ * Only VISIBLE rows fit; with more, they scroll up a page at a time, then back to the top.
+ * `rows` are placed at TOP + i * ROW.
+ */
+export function scrollingRows(rows: string, count: number, width: number, config: Config): { css: string; body: string } {
+  const scrolls = count > VISIBLE && config.theme.animations;
+  const keyframes = scrolls ? scrollKeyframes(pageOffsets(count)) : null;
+  return {
+    css: keyframes ? `\n  .scroll { animation: scroll ${keyframes.seconds}s ease-in-out infinite; }${keyframes.css}` : '',
+    body:
+      `<clipPath id="rows"><rect x="0" y="${TOP - 4}" width="${width}" height="${VISIBLE * ROW}"/></clipPath>` +
+      `<g clip-path="url(#rows)"><g${scrolls ? ' class="scroll"' : ''}>\n${rows}\n</g></g>`,
+  };
 }
 
 export function renderContributions(items: ContributionItem[], theme: Theme, config: Config): string {
@@ -84,11 +99,7 @@ export function renderContributions(items: ContributionItem[], theme: Theme, con
     })
     .join('\n');
 
-  // Only VISIBLE rows fit; with more, they scroll up a page at a time, then back to the top.
-  const scrolls = items.length > VISIBLE && config.theme.animations;
-  const keyframes = scrolls ? scrollKeyframes(pageOffsets(items.length)) : null;
-  const css = keyframes ? `\n  .scroll { animation: scroll ${keyframes.seconds}s ease-in-out infinite; }${keyframes.css}` : '';
-  const view = `<clipPath id="rows"><rect x="0" y="${TOP - 4}" width="${WIDTH}" height="${VISIBLE * ROW}"/></clipPath>`;
+  const list = scrollingRows(rows, items.length, WIDTH, config);
 
   return card({
     width: WIDTH,
@@ -97,7 +108,7 @@ export function renderContributions(items: ContributionItem[], theme: Theme, con
     desc: items.map((i) => `${i.repo} (${i.stars} stars): ${describe(i)}`).join('. '),
     theme,
     config,
-    css,
-    body: header + view + `<g clip-path="url(#rows)"><g${scrolls ? ' class="scroll"' : ''}>\n${rows}\n</g></g>`,
+    css: list.css,
+    body: header + list.body,
   });
 }

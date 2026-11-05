@@ -5,11 +5,15 @@ import { look, type Style } from '../display/dmd.ts';
 import { renderDisplayLanguages } from '../display/languages.ts';
 import { renderDisplaySummary } from '../display/summary.ts';
 import { renderDisplayWeekly } from '../display/weekly.ts';
+import { renderActivity } from './activity.ts';
 import { renderContributions } from './contributions.ts';
+import { renderGlance } from './glance.ts';
 import { renderLanguages } from './languages.ts';
+import { renderProjects } from './projects.ts';
 import { renderSummary } from './summary.ts';
 import { THEMES, type Mode } from './svg.ts';
 import { renderWeekly } from './weekly.ts';
+import { renderYears } from './years.ts';
 
 /**
  * File name -> SVG, one light and one dark variant of each card in `config.cards`, in the usual
@@ -18,7 +22,7 @@ import { renderWeekly } from './weekly.ts';
 export function renderAll(model: Model, config: Config): Record<string, string> {
   const files: Record<string, string> = {};
   for (const mode of ['light', 'dark'] as Mode[]) {
-    let render: Record<Card, () => string>;
+    let render: Partial<Record<Card, () => string>>;
     if (config.style === 'oled') {
       const style: Style = { look: look(config.color, mode), dots: config.matrix, animations: config.theme.animations, panel: !config.transparent };
       render = {
@@ -34,9 +38,13 @@ export function renderAll(model: Model, config: Config): Record<string, string> 
         languages: () => renderLanguages(model.languages, theme, config),
         contributions: () => renderContributions(model.contributions, theme, config),
         weekly: () => renderWeekly(model.weekly, theme, config),
+        projects: () => renderProjects(model.projects, theme, config),
+        activity: () => renderActivity(model.activity, theme, config),
+        years: () => renderYears(model.years, theme, config),
+        glance: () => renderGlance(model.glance, theme, config),
       };
     }
-    for (const card of CARDS) if (config.cards.includes(card)) files[`${card}-${mode}.svg`] = render[card]();
+    for (const card of CARDS) if (config.cards.includes(card)) files[`${card}-${mode}.svg`] = render[card]!();
   }
   return files;
 }
@@ -45,5 +53,5 @@ export function renderAll(model: Model, config: Config): Record<string, string> 
 export function cardWidths(config: Config): Record<string, number> {
   return config.style === 'oled'
     ? { summary: 400, languages: 400, contributions: 400, weekly: 400 }
-    : { summary: 450, languages: 350, contributions: 450, weekly: 350 };
+    : { summary: 450, languages: 350, contributions: 450, weekly: 350, projects: 450, glance: 350, activity: 450, years: 350 };
 }

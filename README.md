@@ -115,6 +115,19 @@ color: amber
 <img src="examples/oled-cards/no-matrix/languages.svg" width="400" alt="Languages without the matrix">
 </p>
 
+## Extra cards
+
+Four more classic cards, left out unless you list them in `cards`. There are no OLED versions.
+
+- **Projects** (`projects`, 450 wide): your public repos by stars, with language and description.
+- **At a glance** (`glance`, 350): repositories, public repos, stars, languages and contributions, plus an optional counter of public repos by name prefix.
+- **Recent activity** (`activity`, 450): your public repos with commits in the last 30 days, with the latest commit message.
+- **Year by year** (`years`, 350): contributions per year, with optional milestones.
+
+```yaml
+cards: [summary, languages, contributions, weekly, projects, glance, activity, years]
+```
+
 ## Where the numbers come from
 
 - Commits, pull requests, issues, reviews: GitHub's contributions API, with the same rules as the contribution graph on your profile. Without the token's `read:user` scope it hides private work.
@@ -186,6 +199,24 @@ contributions:
   hide: []
 weekly:
   title: Weekly rhythm
+projects:
+  title: Projects
+  count: 6              # 3 in view at a time; the rest scroll past in a loop
+  pin: []               # shown first, in this order
+  hide: []
+activity:
+  title: Recent activity
+  count: 6              # 3 in view at a time; the rest scroll past in a loop
+  hide: []
+years:
+  title: Year by year
+  count: 3
+  milestones: {}        # year: a short note
+glance:
+  title: At a glance
+  counter:              # an extra tile: public repos whose name starts with prefix
+    label: null
+    prefix: null
 ```
 
 `theme.background`, `theme.border` and `summary.title` apply to the classic cards only. Unknown settings are an error, so typos don't go unnoticed.

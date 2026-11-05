@@ -34,7 +34,7 @@ export interface Config {
   };
   contributions: {
     title: string | null;
-    /** How many repos to show; 4 fit the card's height. */
+    /** How many repos to show; 3 are in view at a time, the rest scroll past in a loop. */
     count: number;
     includeOpen: boolean;
     /** Shown before the others, if they have a merged (or open) pull request of yours. */
@@ -52,7 +52,7 @@ export const DEFAULT_CONFIG: Config = {
   theme: { background: 'transparent', border: false, animations: true },
   summary: { title: null, ring: 'percent' },
   languages: { title: 'Most used languages', count: 6, exclude: [], excludeRepos: [], repoWeights: {}, other: true },
-  contributions: { title: 'Notable contributions', count: 4, includeOpen: true, pin: [], hide: [] },
+  contributions: { title: 'Notable contributions', count: 6, includeOpen: true, pin: [], hide: [] },
   weekly: { title: 'Weekly rhythm' },
 };
 

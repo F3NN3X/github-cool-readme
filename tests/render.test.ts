@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { compute } from '../src/compute.ts';
 import { DEFAULT_CONFIG, type Config } from '../src/config.ts';
-import { describe as describeItem } from '../src/render/contributions.ts';
+import { describe as describeItem, pageOffsets, renderContributions } from '../src/render/contributions.ts';
 import { renderAll } from '../src/render/index.ts';
-import { formatCompact, truncate } from '../src/render/svg.ts';
+import { THEMES, formatCompact, truncate } from '../src/render/svg.ts';
 import { fixture } from './fixtures/snapshot.ts';
 
 /** Minimal well-formedness check: every opened tag is closed in order. */
@@ -41,9 +41,32 @@ describe('cards', () => {
     }
   });
 
-  it('gives every card the same size', () => {
-    const sizes = Object.values(render()).map((svg) => svg.match(/<svg [^>]*width="(\d+)" height="(\d+)"/)!.slice(1).join('x'));
-    expect(new Set(sizes)).toEqual(new Set(['480x178']));
+  it('makes the cards one height, wide or narrow', () => {
+    const size = (svg: string) => svg.match(/<svg [^>]*width="(\d+)" height="(\d+)"/)!.slice(1).join('x');
+    const files = render();
+    expect(size(files['summary-light.svg'])).toBe('450x195');
+    expect(size(files['contributions-light.svg'])).toBe('450x195');
+    expect(size(files['languages-light.svg'])).toBe('350x195');
+    expect(size(files['weekly-light.svg'])).toBe('350x195');
+  });
+
+  it('scrolls the contributions in a loop when more than 3 are shown', () => {
+    const c = structuredClone(DEFAULT_CONFIG);
+    const item = (n: number) => ({ repo: `o${n}/r${n}`, owner: `o${n}`, stars: 10 - n, avatar: null, merged: 1, open: 0, lastDate: '2026-01-01T00:00:00Z' });
+    const three = renderContributions([1, 2, 3].map(item), THEMES.light, c);
+    expect(three).not.toContain('@keyframes scroll');
+    const six = renderContributions([1, 2, 3, 4, 5, 6].map(item), THEMES.light, c);
+    expect(six).toContain('class="scroll"');
+    expect(six).toMatch(/@keyframes scroll \{.*translateY\(-138px\).*100% \{ transform: translateY\(0\); \} \}/);
+    assertWellFormed(six);
+    c.theme.animations = false;
+    expect(renderContributions([1, 2, 3, 4, 5, 6].map(item), THEMES.light, c)).not.toContain('class="scroll"');
+  });
+
+  it('pages the contributions 3 at a time, with a full last page', () => {
+    expect(pageOffsets(3)).toEqual([0]);
+    expect(pageOffsets(6)).toEqual([0, 138]);
+    expect(pageOffsets(7)).toEqual([0, 138, 184]);
   });
 
   it('puts card titles on the header line, and hides them with null', () => {

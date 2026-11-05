@@ -1,11 +1,11 @@
 import type { Config } from '../config.ts';
 import type { WeekdayItem } from '../compute.ts';
-import { CARD_HEIGHT, CARD_WIDTH, CONTENT_TOP, PAD, card, esc, formatNumber, headerText, type Theme } from './svg.ts';
+import { CARD_HEIGHT, CONTENT_TOP, NARROW as WIDTH, PAD, card, esc, formatNumber, headerText, type Theme } from './svg.ts';
 
-const BASELINE = 150;
-const MAX_BAR = 96; // the busiest day's bar
-const BAR_WIDTH = 26;
-const DAY_Y = 167;
+const BASELINE = 166;
+const MAX_BAR = 112; // the busiest day's bar
+const BAR_WIDTH = 24;
+const DAY_Y = 184;
 
 /** A bar with rounded top corners, standing on the baseline. */
 function bar(x: number, height: number): string {
@@ -23,7 +23,7 @@ export function renderWeekly(days: WeekdayItem[], theme: Theme, config: Config):
 
   if (!max) {
     return card({
-      width: CARD_WIDTH, height: CARD_HEIGHT, title: title ?? 'Weekly rhythm', desc: 'No contributions in the last 12 months.', theme, config,
+      width: WIDTH, height: CARD_HEIGHT, title: title ?? 'Weekly rhythm', desc: 'No contributions in the last 12 months.', theme, config,
       body: header + `<text x="${PAD}" y="${CONTENT_TOP + 14}" class="label muted">No contributions in the last 12 months</text>`,
     });
   }
@@ -31,7 +31,7 @@ export function renderWeekly(days: WeekdayItem[], theme: Theme, config: Config):
   const busiest = days.findIndex((d) => d.count === max);
   // Shaded with the contribution graph's greens: the busier the day, the brighter the green.
   const shade = (count: number) => theme.heat[Math.min(3, Math.ceil((count / max) * 4) - 1)];
-  const slot = (CARD_WIDTH - 2 * PAD) / days.length;
+  const slot = (WIDTH - 2 * PAD) / days.length;
   const animate = config.theme.animations;
   const bars = days
     .map((d, i) => {
@@ -41,7 +41,7 @@ export function renderWeekly(days: WeekdayItem[], theme: Theme, config: Config):
       const delay = animate ? ` style="animation-delay: ${200 + i * 60}ms"` : '';
       return (
         (height ? `<path class="rise"${delay} d="${bar(x, height)}" fill="${shade(d.count)}"/>` : '') +
-        `<text x="${cx}" y="${DAY_Y}" text-anchor="middle" class="label secondary" style="font-size: 11px;">${esc(d.day)}</text>`
+        `<text x="${cx}" y="${DAY_Y}" text-anchor="middle" class="small secondary">${esc(d.day)}</text>`
       );
     })
     .join('\n');
@@ -52,7 +52,7 @@ export function renderWeekly(days: WeekdayItem[], theme: Theme, config: Config):
     : '';
 
   return card({
-    width: CARD_WIDTH,
+    width: WIDTH,
     height: CARD_HEIGHT,
     title: title ?? 'Weekly rhythm',
     desc:
@@ -63,7 +63,7 @@ export function renderWeekly(days: WeekdayItem[], theme: Theme, config: Config):
     css,
     body:
       header +
-      `\n<line x1="${PAD}" y1="${BASELINE + 0.5}" x2="${CARD_WIDTH - PAD}" y2="${BASELINE + 0.5}" stroke="${theme.track}"/>\n` +
+      `\n<line x1="${PAD}" y1="${BASELINE + 0.5}" x2="${WIDTH - PAD}" y2="${BASELINE + 0.5}" stroke="${theme.track}"/>\n` +
       bars,
   });
 }

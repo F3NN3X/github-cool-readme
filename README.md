@@ -35,11 +35,11 @@ It asks before each change (`--dry-run` changes nothing), and does the steps bel
 ```html
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="stats/summary-dark.svg">
-  <img src="stats/summary-light.svg" width="400" alt="GitHub stats">
+  <img src="stats/summary-light.svg" width="450" alt="GitHub stats">
 </picture>
 ```
 
-Same for `languages`, `contributions` and `weekly`. All cards have the same size: at 400px wide two sit side by side, and on a narrow screen they stack.
+Same for `contributions` (450 wide), `languages` and `weekly` (350). All cards are 195 tall: a wide and a narrow one sit side by side, and on a narrow screen they stack.
 
 ## Settings
 
@@ -66,7 +66,7 @@ languages:
   other: true           # fold the rest into "Other"; false: the shown ones share 100%
 contributions:
   title: Notable contributions
-  count: 4             # 4 keep this card the same size as the others
+  count: 6              # 3 in view at a time; the rest scroll past in a loop
   includeOpen: true
   pin: []               # shown first; pull requests closed without merging never count
   hide: []

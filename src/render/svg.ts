@@ -42,13 +42,21 @@ export const THEMES: Record<Mode, Theme> = {
   },
 };
 
-// Every card has the same size, so they line up in a grid, and the same header line: small
-// uppercase text (a title, column names) at HEADER_Y, with the content starting at CONTENT_TOP.
-export const CARD_WIDTH = 480;
-export const CARD_HEIGHT = 178;
-export const PAD = 18;
-export const HEADER_Y = 29;
-export const CONTENT_TOP = 40;
+// Two widths and one height: a wide and a narrow card side by side fill a profile README's
+// 800px (450 + 350, like the github-readme-stats cards), shown at their real size so the
+// text isn't scaled down. Every card has the same header line: small uppercase text (a title,
+// column names) at HEADER_Y, with the content starting at CONTENT_TOP.
+export const WIDE = 450;
+export const NARROW = 350;
+export const CARD_HEIGHT = 195;
+export const PAD = 20;
+export const HEADER_Y = 28;
+export const CONTENT_TOP = 46;
+
+// Font sizes, the same on every card: main text, secondary text, header line.
+export const TEXT = 14;
+export const SMALL = 12;
+export const CAPS = 11;
 
 /** Small uppercase text on the header line, e.g. a card title or a column name. */
 export function headerText(text: string, x: number, anchor: 'start' | 'middle' | 'end' = 'start'): string {
@@ -125,9 +133,10 @@ export function card(o: CardOptions): string {
 <desc id="desc">${esc(o.desc)}</desc>
 <style>
   text { font-family: ${FONT}; fill: ${t.text}; }
-  .label { font-size: 13px; }
-  .value { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .col { font-size: 9px; fill: ${t.muted}; letter-spacing: 0.02em; }
+  .label { font-size: ${TEXT}px; }
+  .value { font-size: ${TEXT}px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .small { font-size: ${SMALL}px; }
+  .col { font-size: ${CAPS}px; fill: ${t.muted}; letter-spacing: 0.04em; }
   .secondary { fill: ${t.secondary}; }
   .muted { fill: ${t.muted}; }
   .icon { fill: ${t.secondary}; }${config.theme.animations ? ANIMATIONS : ''}${o.css ?? ''}

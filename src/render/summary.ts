@@ -1,7 +1,7 @@
 import type { Config } from '../config.ts';
 import type { CountKey, SummaryModel } from '../compute.ts';
 import { icon, type IconName } from './icons.ts';
-import { CARD_HEIGHT, CARD_WIDTH, CONTENT_TOP, PAD, card, esc, fadeIn, formatNumber, headerText, type Theme } from './svg.ts';
+import { CARD_HEIGHT, CONTENT_TOP, PAD, WIDE, card, esc, fadeIn, formatNumber, headerText, type Theme } from './svg.ts';
 
 const ICONS: Record<CountKey, IconName> = {
   commits: 'git-commit',
@@ -10,10 +10,10 @@ const ICONS: Record<CountKey, IconName> = {
   issues: 'issue-opened',
 };
 
-const ROW = 26;
-const COL_12 = 216; // right edge of the "12 months" column
-const COL_ALL = 298; // right edge of the "All time" column
-const RING_X = 386; // centred in the space right of the table
+const ROW = 28;
+const COL_12 = 222; // right edge of the "year" column
+const COL_ALL = 300; // right edge of the "all time" column
+const RING_X = 374; // centred in the space right of the table
 const RADIUS = 40;
 const LOGO = 66; // GitHub mark: nearly fills the ring, as on the old github-readme-stats card
 
@@ -37,10 +37,10 @@ export function renderSummary(m: SummaryModel, theme: Theme, config: Config): st
         0,
         tableTop + i * ROW,
         i,
-        icon(r.icon, 18, 2) +
-          `<text x="44" y="14" class="label">${esc(r.label)}</text>` +
-          (r.last12 ? `<text x="${COL_12}" y="14" class="value" text-anchor="end">${r.last12}</text>` : '') +
-          `<text x="${COL_ALL}" y="14" class="value" text-anchor="end">${r.all}</text>`,
+        icon(r.icon, PAD, 3) +
+          `<text x="${PAD + 26}" y="15" class="label">${esc(r.label)}</text>` +
+          (r.last12 ? `<text x="${COL_12}" y="15" class="value" text-anchor="end">${r.last12}</text>` : '') +
+          `<text x="${COL_ALL}" y="15" class="value" text-anchor="end">${r.all}</text>`,
         config,
       ),
     )
@@ -48,7 +48,7 @@ export function renderSummary(m: SummaryModel, theme: Theme, config: Config): st
 
   // Activity ring: share of days with at least one contribution. Its caption sits on the header
   // line, and the ring is centred on the rows below it.
-  const cy = tableTop + ((rows.length - 1) * ROW) / 2 + 9;
+  const cy = tableTop + ((rows.length - 1) * ROW) / 2 + 10;
   const circumference = 2 * Math.PI * RADIUS;
   const offset = circumference * (1 - m.activity.percent / 100);
   const ring = `
@@ -73,7 +73,7 @@ ${
   ].join(' ');
 
   return card({
-    width: CARD_WIDTH,
+    width: WIDE,
     height: Math.max(CARD_HEIGHT, height, cy + RADIUS + 10),
     title: m.title ?? 'GitHub stats',
     desc,

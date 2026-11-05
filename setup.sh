@@ -240,11 +240,11 @@ block="$(mktemp)"
 {
   echo "$START"
   echo '<p align="center">'
-  picture summary 49% "GitHub stats"
-  picture languages 49% "Most used languages"
+  picture summary 400 "GitHub stats"
+  picture languages 400 "Most used languages"
   echo '</p>'
   echo '<p align="center">'
-  picture contributions 49% "Notable contributions"
+  picture contributions 400 "Notable contributions"
   echo '</p>'
   echo "$END"
 } > "$block"

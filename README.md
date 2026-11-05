@@ -34,11 +34,11 @@ It asks before each change (`--dry-run` changes nothing), and does the steps bel
 ```html
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="stats/summary-dark.svg">
-  <img src="stats/summary-light.svg" width="49%" alt="GitHub stats">
+  <img src="stats/summary-light.svg" width="400" alt="GitHub stats">
 </picture>
 ```
 
-Same for `languages` and `contributions`. All cards have the same size, so at `49%` two sit side by side.
+Same for `languages` and `contributions`. All cards have the same size: at 400px wide two sit side by side, and on a narrow screen they stack.
 
 ## Settings
 

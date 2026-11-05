@@ -44,6 +44,13 @@ summary:
 
 The same numbers as pinball-style dot-matrix displays: big readable text in a dot font, one item at a time with pinball transitions, in amber, green or GitHub's colours, as round LEDs or square pixels. Set `style: oled`. The examples also use `summary.ring: github`, for the GitHub logo in the ring.
 
+**Amber**: the orange of a plasma display. The default.
+
+```yaml
+style: oled
+color: amber
+```
+
 <p align="center">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="examples/oled-cards/summary-dark.svg">
@@ -63,20 +70,6 @@ The same numbers as pinball-style dot-matrix displays: big readable text in a do
   <source media="(prefers-color-scheme: dark)" srcset="examples/oled-cards/weekly-dark.svg">
   <img src="examples/oled-cards/weekly-light.svg" width="400" alt="Weekly rhythm">
 </picture>
-</p>
-
-### Looks
-
-**Amber**: the orange of a plasma display. The default.
-
-```yaml
-style: oled
-color: amber
-```
-
-<p align="center">
-<img src="examples/oled-cards/summary-light.svg" width="400" alt="Amber summary">
-<img src="examples/oled-cards/languages-light.svg" width="400" alt="Amber languages">
 </p>
 
 **Green**: the same panel in green.

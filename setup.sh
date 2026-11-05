@@ -245,6 +245,7 @@ block="$(mktemp)"
   echo '</p>'
   echo '<p align="center">'
   picture contributions 400 "Notable contributions"
+  picture weekly 400 "Weekly rhythm"
   echo '</p>'
   echo "$END"
 } > "$block"

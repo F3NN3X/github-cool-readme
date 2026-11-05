@@ -12,6 +12,8 @@ export interface Theme {
   track: string;
   /** Fallback for languages without a GitHub color, and "Other". */
   neutral: string;
+  /** The contribution graph's greens, from least to most active: the brighter, the busier. */
+  heat: [string, string, string, string];
 }
 
 // GitHub's own Primer colors, so the cards sit naturally on the profile page.
@@ -25,6 +27,7 @@ export const THEMES: Record<Mode, Theme> = {
     accent: '#0969da',
     track: '#d1d9e0',
     neutral: '#8c959f',
+    heat: ['#216e39', '#30a14e', '#40c463', '#9be9a8'],
   },
   dark: {
     background: '#0d1117',
@@ -35,6 +38,7 @@ export const THEMES: Record<Mode, Theme> = {
     accent: '#4493f8',
     track: '#3d444d',
     neutral: '#6e7681',
+    heat: ['#0e4429', '#006d32', '#26a641', '#39d353'],
   },
 };
 

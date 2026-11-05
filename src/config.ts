@@ -41,6 +41,9 @@ export interface Config {
     pin: string[];
     hide: string[];
   };
+  weekly: {
+    title: string | null;
+  };
 }
 
 export const DEFAULT_CONFIG: Config = {
@@ -50,6 +53,7 @@ export const DEFAULT_CONFIG: Config = {
   summary: { title: null, ring: 'percent' },
   languages: { title: 'Most used languages', count: 6, exclude: [], excludeRepos: [], repoWeights: {}, other: true },
   contributions: { title: 'Notable contributions', count: 4, includeOpen: true, pin: [], hide: [] },
+  weekly: { title: 'Weekly rhythm' },
 };
 
 export class ConfigError extends Error {}
@@ -70,6 +74,7 @@ const SHAPE: Shape = {
     other: 'boolean',
   },
   contributions: { title: 'string?', count: 'number', includeOpen: 'boolean', pin: 'string[]', hide: 'string[]' },
+  weekly: { title: 'string?' },
 };
 
 function check(value: unknown, shape: Shape, path: string): void {

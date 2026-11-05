@@ -7,7 +7,8 @@ export function previewHtml(files: string[]): string {
 <section class="${mode}"><div class="readme">
 <p align="center">${picture(mode, 'summary')}
 ${picture(mode, 'languages')}</p>
-<p align="center">${picture(mode, 'contributions')}</p>
+<p align="center">${picture(mode, 'contributions')}
+${picture(mode, 'weekly')}</p>
 </div></section>`;
   return `<!doctype html>
 <html lang="en">

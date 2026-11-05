@@ -30,10 +30,17 @@ export interface ContributionItem {
   lastDate: string;
 }
 
+/** Contributions per weekday over the last 12 months, Monday first. */
+export interface WeekdayItem {
+  day: string;
+  count: number;
+}
+
 export interface Model {
   summary: SummaryModel;
   languages: LanguageItem[];
   contributions: ContributionItem[];
+  weekly: WeekdayItem[];
   /** Things the user should know, e.g. config entries that matched nothing. */
   notes: string[];
 }
@@ -205,5 +212,14 @@ export function compute(snapshot: Snapshot, config: Config): Model {
     }
   }
 
-  return { summary, languages, contributions, notes };
+  // Weekly rhythm: the contribution calendar summed per weekday. Like the active-days ring, it
+  // follows the calendar, which the include settings cannot filter.
+  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const weekly: WeekdayItem[] = DAYS.map((day) => ({ day, count: 0 }));
+  for (const d of snapshot.calendar) {
+    const sundayFirst = new Date(`${d.date}T00:00:00Z`).getUTCDay();
+    weekly[(sundayFirst + 6) % 7].count += d.count;
+  }
+
+  return { summary, languages, contributions, weekly, notes };
 }

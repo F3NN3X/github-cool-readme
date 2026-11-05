@@ -30,6 +30,7 @@ describe('cards', () => {
       'contributions-dark.svg', 'contributions-light.svg',
       'languages-dark.svg', 'languages-light.svg',
       'summary-dark.svg', 'summary-light.svg',
+      'weekly-dark.svg', 'weekly-light.svg',
     ]);
   });
 
@@ -49,6 +50,7 @@ describe('cards', () => {
     const files = render();
     expect(files['languages-light.svg']).toContain('>MOST USED LANGUAGES<');
     expect(files['contributions-light.svg']).toContain('>NOTABLE CONTRIBUTIONS<');
+    expect(files['weekly-light.svg']).toContain('>WEEKLY RHYTHM<');
     const untitled = render((c) => { c.languages.title = null; c.contributions.title = null; });
     expect(untitled['languages-light.svg']).not.toContain('class="col"');
     expect(untitled['contributions-light.svg']).not.toContain('class="col"');
@@ -86,6 +88,8 @@ describe('cards', () => {
     const files = renderAll(model, c);
     expect(files['languages-light.svg']).toContain('No language data yet');
     expect(files['contributions-light.svg']).toContain('No contributions to other projects yet');
+    const quiet = renderAll(compute({ ...fixture(), calendar: [] }, c), c);
+    expect(quiet['weekly-light.svg']).toContain('No contributions in the last 12 months');
   });
 });
 

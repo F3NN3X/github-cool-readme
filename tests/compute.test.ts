@@ -81,6 +81,22 @@ describe('languages', () => {
   });
 });
 
+describe('weekly rhythm', () => {
+  it('sums the calendar per weekday, Monday first', () => {
+    // The fixture's calendar runs Thu 2026-10-01 to Sat 10-10: 0 for the first four days, then 4, 5, ... 9.
+    const m = compute(fixture(), config());
+    expect(m.weekly).toEqual([
+      { day: 'Mon', count: 4 },
+      { day: 'Tue', count: 5 },
+      { day: 'Wed', count: 6 },
+      { day: 'Thu', count: 0 + 7 },
+      { day: 'Fri', count: 0 + 8 },
+      { day: 'Sat', count: 0 + 9 },
+      { day: 'Sun', count: 0 },
+    ]);
+  });
+});
+
 describe('notable contributions', () => {
   const repos = (m: ReturnType<typeof compute>) => m.contributions.map((c) => c.repo);
 

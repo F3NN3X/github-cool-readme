@@ -417,7 +417,10 @@ export function compute(snapshot: Snapshot, config: Config): Model {
     : null;
 
   const types = commitTypes(snapshot.commitSubjects);
-if (filtering && config.cards.some((card) => card === 'telemetry' || card === 'streaks')) {    notes.push('the include settings cannot filter the contribution calendar, so the telemetry and streaks cards still count private and organization work');  }
+
+  if (filtering && config.cards.some((card) => card === 'telemetry' || card === 'streaks')) {
+    notes.push('the include settings cannot filter the contribution calendar, so the telemetry and streaks cards still count private and organization work');
+  }
 
   return { summary, languages, contributions, weekly, projects, activity, years, glance, releases, downloads, streaks, pulls, telemetry, now, types, notes };
 }

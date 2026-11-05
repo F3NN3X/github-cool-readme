@@ -1,13 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 
-export const CARDS = ['summary', 'languages', 'contributions', 'weekly', 'projects', 'glance', 'releases', 'streaks', 'downloads', 'pulls', 'activity', 'years', 'telemetry', 'now', 'types'] as const;
+export const CARDS = ['summary', 'languages', 'contributions', 'weekly', 'projects', 'glance', 'releases', 'streaks', 'downloads', 'pulls', 'activity', 'years', 'telemetry', 'now', 'types', 'about'] as const;
 export type Card = (typeof CARDS)[number];
 
 /** The cards made when the settings don't say. */
 export const DEFAULT_CARDS: Card[] = ['summary', 'languages', 'contributions', 'weekly'];
 /** These have no OLED version. */
-export const CLASSIC_ONLY_CARDS: Card[] = ['projects', 'glance', 'releases', 'streaks', 'downloads', 'pulls', 'activity', 'years', 'telemetry', 'now', 'types'];
+export const CLASSIC_ONLY_CARDS: Card[] = ['projects', 'glance', 'releases', 'streaks', 'downloads', 'pulls', 'activity', 'years', 'telemetry', 'now', 'types', 'about'];
 /** The list cards that scroll, each taking its own turn. */
 export const SCROLLING_CARDS: Card[] = ['contributions', 'projects', 'releases', 'downloads', 'activity'];
 /** How far back the activity card looks. */
@@ -122,6 +122,15 @@ export interface Config {
   types: {
     title: string | null;
   };
+  about: {
+    title: string | null;
+    /** Shown large; null for none. */
+    headline: string | null;
+    /** Each is one line of text: they are not wrapped. */
+    lines: string[];
+    /** Label -> text, shown as a column beside the lines. */
+    facts: Record<string, string>;
+  };
 }
 
 export const DEFAULT_CONFIG: Config = {
@@ -148,6 +157,7 @@ export const DEFAULT_CONFIG: Config = {
   telemetry: { title: 'Telemetry' },
   now: { title: 'Now building', repo: null },
   types: { title: 'Commit types' },
+  about: { title: 'About', headline: null, lines: [], facts: {} },
 };
 
 export class ConfigError extends Error {}
@@ -185,6 +195,7 @@ const SHAPE: Shape = {
   telemetry: { title: 'string?' },
   now: { title: 'string?', repo: 'string?' },
   types: { title: 'string?' },
+  about: { title: 'string?', headline: 'string?', lines: 'string[]', facts: 'strings' },
 };
 
 function check(value: unknown, shape: Shape, path: string): void {

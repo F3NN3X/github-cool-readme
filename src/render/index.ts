@@ -5,6 +5,7 @@ import { look, type Style } from '../display/dmd.ts';
 import { renderDisplayLanguages } from '../display/languages.ts';
 import { renderDisplaySummary } from '../display/summary.ts';
 import { renderDisplayWeekly } from '../display/weekly.ts';
+import { renderAbout } from './about.ts';
 import { renderActivity } from './activity.ts';
 import { renderContributions } from './contributions.ts';
 import { renderDownloads } from './downloads.ts';
@@ -52,6 +53,7 @@ export function renderAll(model: Model, config: Config): Record<string, string> 
         pulls: () => tileCard(config.pulls.title, 'Pull requests', model.pulls, theme, config),
         telemetry: () => renderTelemetry(model.telemetry, theme, config),
         now: () => renderNow(model.now, theme, config),
+        about: () => renderAbout(theme, config),
         types: () => shareCard(config.types.title, 'Commit types', 'No commit data yet', model.types, theme, config),
       };
     }
@@ -64,5 +66,5 @@ export function renderAll(model: Model, config: Config): Record<string, string> 
 export function cardWidths(config: Config): Record<string, number> {
   return config.style === 'oled'
     ? { summary: 400, languages: 400, contributions: 400, weekly: 400 }
-    : { summary: 450, languages: 350, contributions: 450, weekly: 350, projects: 450, glance: 350, releases: 450, streaks: 350, downloads: 450, pulls: 350, activity: 450, years: 350, telemetry: 800, now: 800, types: 350 };
+    : { summary: 450, languages: 350, contributions: 450, weekly: 350, projects: 450, glance: 350, releases: 450, streaks: 350, downloads: 450, pulls: 350, activity: 450, years: 350, telemetry: 800, now: 800, types: 350, about: 800 };
 }

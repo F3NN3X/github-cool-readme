@@ -131,6 +131,8 @@ More classic cards, left out unless you list them in `cards`. There are no OLED 
 - **Now building** (`now`, 800, a whole row): your public repo with the most recent commits, or the one in `now.repo`, with commits per day.
 - **Commit types** (`types`, 350): the share of each conventional commit type, from your latest 100 commits per public repo.
 
+- **About** (`about`, 800, a whole row): a headline, a few lines of text and a column of facts, all from the settings. An SVG in a README can't hold working links, so put those under the card.
+
 Cards that scroll take turns, in the order of `cards`, so that only one moves at a time.
 
 ```yaml
@@ -245,6 +247,11 @@ now:
   repo: null            # "repo"; by default the public repo with the most recent commits
 types:
   title: Commit types
+about:
+  title: About
+  headline: null
+  lines: []             # one line each; they are not wrapped
+  facts: {}             # label: text
 ```
 
 `theme.background`, `theme.border` and `summary.title` apply to the classic cards only. Unknown settings are an error, so typos don't go unnoticed.

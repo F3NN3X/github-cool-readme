@@ -309,6 +309,72 @@ WORK="$(mktemp -d)"
 gh repo clone "$PROFILE" "$WORK/repo" -- --quiet --depth 1
 cd "$WORK/repo"
 
+# ------------------------------------------------------------------ cards
+
+CARD_NAMES="summary languages contributions weekly"
+cards_get() { # cards_get file: the cards it lists, as a flow list or a block list; empty if none
+  [ -f "$1" ] || return 0
+  awk '
+    /^cards:/ {
+      line = $0; sub(/^cards:[[:space:]]*/, "", line); sub(/[[:space:]]*#.*$/, "", line)
+      if (line != "") { gsub(/[][,]/, " ", line); print line; exit }
+      block = 1; next
+    }
+    block && /^[[:space:]]*-/ { item = $0; sub(/^[[:space:]]*-[[:space:]]*/, "", item); sub(/[[:space:]]*#.*$/, "", item); out = out " " item; next }
+    block { exit }
+    END { if (block) print out }' "$1" | tr -d "\"'" | tr -s ' \t' '  ' | sed 's/^ *//; s/ *$//'
+}
+cards_set() { # cards_set file "card card": writes "cards: [card, card]" in place of what was there
+  local tmp
+  tmp="$(mktemp)"
+  awk -v value="[$(printf '%s' "$2" | sed 's/ /, /g')]" '
+    /^cards:/ { print "cards: " value; done = 1; skip = 1; next }
+    skip && /^[[:space:]]*-/ { next }
+    { skip = 0; print }
+    END { if (!done) print "cards: " value }' "$1" > "$tmp" && mv "$tmp" "$1"
+}
+card_on() { case " $S_CARDS " in *" $1 "*) return 0 ;; esac; return 1; }
+in_order() { # in_order "card card": the known cards among them, in the usual order
+  local card out=""
+  for card in $CARD_NAMES; do case " $1 " in *" $card "*) out="${out:+$out }$card" ;; esac; done
+  echo "$out"
+}
+draw_cards() { # draw_cards hint: one line, the cards that are on in green
+  local n=1 card line=""
+  for card in $CARD_NAMES; do
+    if card_on "$card"; then line="$line $(paint '1;32' "$n:$card")"; else line="$line $(paint 2 "$n:$card")"; fi
+    n=$((n + 1))
+  done
+  printf '\r  %-9s%s   %s\033[K' show "$line" "$(paint 2 "$1")"
+}
+
+section "Cards"
+cur_cards="$(in_order "$(cards_get "$CONFIG")")"
+S_CARDS="${cur_cards:-$CARD_NAMES}"
+if $FANCY; then
+  hint="press 1-4 to turn a card on or off, Enter to continue"
+  while :; do
+    draw_cards "$hint"
+    IFS= read -rsn1 key < /dev/tty || break
+    [ -n "$key" ] || break
+    hint="press 1-4 to turn a card on or off, Enter to continue"
+    n=1
+    for card in $CARD_NAMES; do
+      if [ "$key" = "$n" ]; then
+        if ! card_on "$card"; then S_CARDS="$(in_order "$S_CARDS $card")"
+        elif [ "$S_CARDS" = "$card" ]; then hint="at least one card stays on"
+        else S_CARDS="$(in_order "$(printf ' %s ' "$S_CARDS" | sed "s/ $card / /")")"
+        fi
+      fi
+      n=$((n + 1))
+    done
+  done
+  draw_cards ""
+  echo
+else
+  report ok "cards: $(printf '%s' "$S_CARDS" | sed 's/ /, /g')"
+fi
+
 section "Settings"
 if [ -f "$CONFIG" ]; then
   cur_private="$(yaml_get "$CONFIG" include.private)"; cur_orgs="$(yaml_get "$CONFIG" include.orgs)"
@@ -335,11 +401,16 @@ if [ -f "$CONFIG" ]; then
   change color "${cur_color:-amber}" "$S_COLOR" colour
   change matrix "${cur_matrix:-true}" "$S_MATRIX" dots
   change transparent "${cur_transparent:-false}" "$S_TRANSPARENT" background
+  if [ "$S_CARDS" != "${cur_cards:-$CARD_NAMES}" ]; then
+    cards_set "$CONFIG" "$S_CARDS"
+    changes="${changes:+$changes, }cards: $(printf '%s' "$S_CARDS" | sed 's/ /, /g')"
+  fi
   if [ -n "$changes" ]; then report updated "$changes"; else report ok "$CONFIG unchanged"; fi
 else
   {
     echo "# Settings: https://github.com/$TOOL_REPO#settings"
     echo "user: $LOGIN"
+    [ "$S_CARDS" = "$CARD_NAMES" ] || echo "cards: [$(printf '%s' "$S_CARDS" | sed 's/ /, /g')]"
     echo "style: $S_STYLE"
     if [ "$S_STYLE" = oled ]; then echo "color: $S_COLOR"; echo "matrix: $S_MATRIX"; echo "transparent: $S_TRANSPARENT"; fi
     echo "include:"
@@ -379,19 +450,30 @@ picture() { # picture card width alt
   printf '<picture>\n  <source media="(prefers-color-scheme: dark)" srcset="%s/%s-dark.svg">\n  <img src="%s/%s-light.svg" width="%s" alt="%s">\n</picture>\n' \
     "$OUT" "$1" "$OUT" "$1" "$2" "$3"
 }
+card_picture() { # card_picture card
+  case "$1" in
+    summary) picture summary "$WIDE" "GitHub stats" ;;
+    languages) picture languages "$NARROW" "Most used languages" ;;
+    contributions) picture contributions "$WIDE" "Notable contributions" ;;
+    weekly) picture weekly "$NARROW" "Weekly rhythm" ;;
+  esac
+}
 block="$(mktemp)"
 {
   echo "$START"
-  echo '<p align="center">'
-  picture summary "$WIDE" "GitHub stats"
-  picture languages "$NARROW" "Most used languages"
-  echo '</p>'
-  echo '<p align="center">'
-  picture contributions "$WIDE" "Notable contributions"
-  picture weekly "$NARROW" "Weekly rhythm"
-  echo '</p>'
+  n=0
+  for card in $S_CARDS; do # two cards per row
+    [ $((n % 2)) = 0 ] && echo '<p align="center">'
+    card_picture "$card"
+    [ $((n % 2)) = 1 ] && echo '</p>'
+    n=$((n + 1))
+  done
+  [ $((n % 2)) = 1 ] && echo '</p>'
   echo "$END"
 } > "$block"
+if [ "$WIDE" = "$NARROW" ]; then size="$WIDE wide"; else size="$WIDE and $NARROW wide"; fi
+missing_cards=false # a card that's on but not made yet: the README waits for the first run
+for card in $S_CARDS; do [ -f "$OUT/$card-light.svg" ] || missing_cards=true; done
 
 HAD_README=false
 [ -f README.md ] && HAD_README=true
@@ -412,15 +494,15 @@ git add -N README.md # so a new README shows in the diff too
 README_LATER=false # true: the README change waits for the first run's cards
 if git diff --quiet README.md; then
   report ok "the cards $where"
-elif [ -f "$OUT/summary-light.svg" ]; then
-  report updated "the cards $where, ${WIDE} and ${NARROW} wide"
+elif ! $missing_cards; then
+  report updated "the cards $where, $size"
 else
   README_LATER=true
   git --no-pager -c color.ui="$($COLOUR && echo always || echo never)" diff README.md > "$WORK/readme.diff"
   cp README.md "$WORK/README.next"
   git reset --quiet README.md
   if $HAD_README; then git checkout --quiet -- README.md; else rm -f README.md; fi
-  report updated "the cards $where, ${WIDE} and ${NARROW} wide"
+  report updated "the cards $where, $size"
   note "$(paint 2 'committed by itself once the first run has made the cards')"
 fi
 if grep -q 'github-readme-stats' README.md "$WORK/README.next" 2>/dev/null; then

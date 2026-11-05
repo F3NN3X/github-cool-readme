@@ -1,9 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 
+export const CARDS = ['summary', 'languages', 'contributions', 'weekly'] as const;
+export type Card = (typeof CARDS)[number];
+
 export interface Config {
   /** GitHub login. Defaults to the token's owner. */
   user: string | null;
+  /** The cards to make; the others are left out. */
+  cards: Card[];
   /** classic: GitHub-style cards. oled: pinball-style dot-matrix displays. */
   style: 'classic' | 'oled';
   /** oled only: round LEDs; false draws square pixels. */
@@ -56,6 +61,7 @@ export interface Config {
 
 export const DEFAULT_CONFIG: Config = {
   user: null,
+  cards: [...CARDS],
   style: 'classic',
   matrix: true,
   color: 'amber',
@@ -74,6 +80,7 @@ type Shape = { [key: string]: 'boolean' | 'string' | 'string?' | 'number' | 'str
 
 const SHAPE: Shape = {
   user: 'string?',
+  cards: 'string[]',
   style: 'string',
   matrix: 'boolean',
   color: 'string',
@@ -153,6 +160,13 @@ export function parseConfig(text: string): Config {
   if (!['amber', 'green', 'theme'].includes(config.color)) {
     throw new ConfigError('"color" must be "amber", "green" or "theme"');
   }
+  for (const card of config.cards) {
+    if (!(CARDS as readonly string[]).includes(card)) {
+      throw new ConfigError(`"cards" has "${card}"; the cards are ${CARDS.join(', ')}`);
+    }
+  }
+  if (config.cards.length === 0) throw new ConfigError('"cards" must name at least one card');
+  if (new Set(config.cards).size !== config.cards.length) throw new ConfigError('"cards" names a card twice');
   if (config.summary.ring !== 'percent' && config.summary.ring !== 'github') {
     throw new ConfigError('"summary.ring" must be "percent" or "github"');
   }

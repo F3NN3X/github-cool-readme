@@ -1,4 +1,4 @@
-import type { Config } from '../config.ts';
+import { CARDS, type Card, type Config } from '../config.ts';
 import type { Model } from '../compute.ts';
 import { renderDisplayContributions } from '../display/contributions.ts';
 import { look, type Style } from '../display/dmd.ts';
@@ -11,23 +11,32 @@ import { renderSummary } from './summary.ts';
 import { THEMES, type Mode } from './svg.ts';
 import { renderWeekly } from './weekly.ts';
 
-/** File name -> SVG, one light and one dark variant per card. The same names for both styles. */
+/**
+ * File name -> SVG, one light and one dark variant of each card in `config.cards`, in the usual
+ * card order. The same names for both styles.
+ */
 export function renderAll(model: Model, config: Config): Record<string, string> {
   const files: Record<string, string> = {};
   for (const mode of ['light', 'dark'] as Mode[]) {
+    let render: Record<Card, () => string>;
     if (config.style === 'oled') {
       const style: Style = { look: look(config.color, mode), dots: config.matrix, animations: config.theme.animations, panel: !config.transparent };
-      files[`summary-${mode}.svg`] = renderDisplaySummary(model.summary, style);
-      files[`languages-${mode}.svg`] = renderDisplayLanguages(model.languages, config.languages.title, style);
-      files[`contributions-${mode}.svg`] = renderDisplayContributions(model.contributions, config.contributions.title, style);
-      files[`weekly-${mode}.svg`] = renderDisplayWeekly(model.weekly, config.weekly.title, style);
-      continue;
+      render = {
+        summary: () => renderDisplaySummary(model.summary, style),
+        languages: () => renderDisplayLanguages(model.languages, config.languages.title, style),
+        contributions: () => renderDisplayContributions(model.contributions, config.contributions.title, style),
+        weekly: () => renderDisplayWeekly(model.weekly, config.weekly.title, style),
+      };
+    } else {
+      const theme = THEMES[mode];
+      render = {
+        summary: () => renderSummary(model.summary, theme, config),
+        languages: () => renderLanguages(model.languages, theme, config),
+        contributions: () => renderContributions(model.contributions, theme, config),
+        weekly: () => renderWeekly(model.weekly, theme, config),
+      };
     }
-    const theme = THEMES[mode];
-    files[`summary-${mode}.svg`] = renderSummary(model.summary, theme, config);
-    files[`languages-${mode}.svg`] = renderLanguages(model.languages, theme, config);
-    files[`contributions-${mode}.svg`] = renderContributions(model.contributions, theme, config);
-    files[`weekly-${mode}.svg`] = renderWeekly(model.weekly, theme, config);
+    for (const card of CARDS) if (config.cards.includes(card)) files[`${card}-${mode}.svg`] = render[card]();
   }
   return files;
 }

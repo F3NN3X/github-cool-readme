@@ -1,14 +1,15 @@
-// A local page showing the cards the way setup.sh lays them out in a profile README (a wide
-// and a narrow card per row when they fit, in a column as wide as GitHub's), on GitHub's light and dark backgrounds.
+import { CARDS } from './config.ts';
+
+// A local page showing the cards the way setup.sh lays them out in a profile README (two cards per
+// row in the usual order, in a column as wide as GitHub's), on GitHub's light and dark backgrounds.
 export function previewHtml(files: string[], widths: Record<string, number>): string {
-  const picture = (mode: 'light' | 'dark', card: string) =>
-    files.includes(`${card}-${mode}.svg`) ? `<img src="${card}-${mode}.svg" width="${widths[card]}" alt="${card}">` : '';
+  const cards = CARDS.filter((card) => files.includes(`${card}-light.svg`));
+  const rows: string[][] = [];
+  for (let i = 0; i < cards.length; i += 2) rows.push(cards.slice(i, i + 2));
+  const picture = (mode: 'light' | 'dark', card: string) => `<img src="${card}-${mode}.svg" width="${widths[card]}" alt="${card}">`;
   const readme = (mode: 'light' | 'dark') => `
 <section class="${mode}"><div class="readme">
-<p align="center">${picture(mode, 'summary')}
-${picture(mode, 'languages')}</p>
-<p align="center">${picture(mode, 'contributions')}
-${picture(mode, 'weekly')}</p>
+${rows.map((row) => `<p align="center">${row.map((card) => picture(mode, card)).join('\n')}</p>`).join('\n')}
 </div></section>`;
   return `<!doctype html>
 <html lang="en">

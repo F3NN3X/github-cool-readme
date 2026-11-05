@@ -34,6 +34,16 @@ describe('cards', () => {
     ]);
   });
 
+  it('makes only the cards in the cards setting, in either style', () => {
+    for (const style of ['classic', 'oled'] as const) {
+      const files = render((c) => { c.style = style; c.cards = ['weekly', 'summary']; });
+      expect(Object.keys(files).sort()).toEqual(['summary-dark.svg', 'summary-light.svg', 'weekly-dark.svg', 'weekly-light.svg']);
+      // The same cards as when all are made: leaving some out changes nothing in the others.
+      const all = render((c) => (c.style = style));
+      expect(files['summary-dark.svg']).toBe(all['summary-dark.svg']);
+    }
+  });
+
   it('produces well-formed SVG with no missing values', () => {
     for (const [name, svg] of Object.entries(render())) {
       assertWellFormed(svg);

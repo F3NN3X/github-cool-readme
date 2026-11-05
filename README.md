@@ -133,7 +133,7 @@ With [gh](https://cli.github.com) logged in, run:
 bash <(curl -fsSL https://raw.githubusercontent.com/pedrocatalao/github-cool-readme/v1/setup.sh)
 ```
 
-It asks before each change (`--dry-run` changes nothing), and does the steps below. Run it again to change the style, colour or what's counted; your other settings stay as they are.
+It asks before each change (`--dry-run` changes nothing), and does the steps below. Run it again to change the cards, style, colour or what's counted; your other settings stay as they are.
 
 ### To do it by hand:
 
@@ -156,6 +156,7 @@ Same for `contributions` (450 wide), `languages` and `weekly` (350). All cards a
 
 ```yaml
 user: null              # defaults to the token's owner
+cards: [summary, languages, contributions, weekly]   # the cards to make
 style: classic          # or oled: pinball-style dot-matrix cards
 matrix: true            # oled only; false: square pixels instead of round LEDs
 color: amber            # oled only: amber, green or theme (GitHub's colours, light or dark)

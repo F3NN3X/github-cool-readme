@@ -6,10 +6,10 @@ const WIDTH = 350;
 // Spacing as on the old github-readme-stats compact card.
 const PAD = 25;
 const BAR_Y = 25;
-const BAR_H = 8;
+const BAR_H = 10;
 const GAP = 2;
-const LEGEND_TOP = 50;
-const LEGEND_ROW = 25;
+const LEGEND_TOP = 52;
+const LEGEND_ROW = 28;
 
 const pct = (p: number) => `${p < 0.1 ? '<0.1' : p.toFixed(1)}%`;
 
@@ -37,7 +37,7 @@ export function renderLanguages(items: LanguageItem[], theme: Theme, config: Con
     .join('');
 
   const bar = `
-<mask id="bar"><rect class="grow" x="${PAD}" y="${BAR_Y}" width="${barWidth}" height="${BAR_H}" rx="4" fill="#fff"/></mask>
+<mask id="bar"><rect class="grow" x="${PAD}" y="${BAR_Y}" width="${barWidth}" height="${BAR_H}" rx="${BAR_H / 2}" fill="#fff"/></mask>
 <g mask="url(#bar)">${segments}</g>`;
 
   const colWidth = barWidth / 2;

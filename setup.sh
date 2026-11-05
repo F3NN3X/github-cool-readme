@@ -78,8 +78,28 @@ die() { # die what [what to do]: a red line, a hint, and stop
   exit 1
 }
 
+ESC="$(printf '\033')"
+quit() { # Esc: stop here
+  echo
+  framed 33 "Stopped: nothing after this step was changed."
+  exit 1
+}
+read_key() { # read_key: one key into KEY, "" for Enter. Esc quits; arrow keys and the like are ignored.
+  local saved rest
+  while :; do
+    IFS= read -rsn1 KEY < /dev/tty || { KEY=""; return 0; }
+    [ "$KEY" = "$ESC" ] || return 0
+    # A key like an arrow sends Esc and more right after it; a lone Esc is the Esc key.
+    saved="$(stty -g < /dev/tty)"
+    stty -icanon -echo min 0 time 1 < /dev/tty # wait at most a tenth of a second
+    rest="$(dd bs=16 count=1 2>/dev/null < /dev/tty)"
+    stty "$saved" < /dev/tty
+    [ -n "$rest" ] || quit
+  done
+}
+
 yesno() { # yesno "Question" default(y|n) [d]: one key, no Enter. Returns 0 yes, 1 no, 2 show the diff (with d).
-  local question="$1" def="$2" hint key answer
+  local question="$1" def="$2" hint answer
   if [ "$def" = y ]; then hint="Y/n"; else hint="y/N"; fi
   [ -z "${3:-}" ] || hint="$hint, d: show the changes"
   if ! $HAVE_TTY; then
@@ -90,8 +110,8 @@ yesno() { # yesno "Question" default(y|n) [d]: one key, no Enter. Returns 0 yes,
   fi
   printf '%s%s  %s  ' "$INDENT" "$question" "$(paint 2 "[$hint]")"
   while :; do
-    IFS= read -rsn1 key < /dev/tty || key=""
-    case "$key" in
+    read_key
+    case "$KEY" in
       y | Y) answer=yes; break ;;
       n | N) answer=no; break ;;
       '') answer=no; [ "$def" = y ] && answer=yes; break ;;
@@ -140,9 +160,10 @@ yaml_set() { # yaml_set file key value: changes only that line, adding it if mis
     }' "$1" > "$tmp" && mv "$tmp" "$1"
 }
 
-# The settings screen: one row per setting; its number cycles the value, Enter continues.
+# The settings screen: one row per setting; its number cycles the value, Enter continues. The
+# oled-only rows show only with the oled style.
 # Values are kept in S_STYLE, S_COLOR, S_MATRIX, S_TRANSPARENT, S_PRIVATE, S_ORGS.
-ROWS="style color matrix transparent private orgs"
+rows() { if [ "$S_STYLE" = oled ]; then echo "private orgs style color matrix transparent"; else echo "private orgs style"; fi; }
 row_name() { case "$1" in style) echo style ;; color) echo colour ;; matrix) echo dots ;; transparent) echo background ;; private) echo "private repos" ;; orgs) echo "org repos" ;; esac; }
 row_values() { case "$1" in style) echo "classic oled" ;; color) echo "amber green theme" ;; transparent) echo "false true" ;; *) echo "true false" ;; esac; }
 row_label() { # row_label row value: what the value is called on screen
@@ -165,42 +186,38 @@ cycle_row() { # the next value of a row, wrapping around
   done
   set_row "$1" "${next:-$first}"
 }
+DRAWN=0 # lines the settings screen took last time, to draw over them
 draw_settings() { # one line per setting, then the hint
-  local n=1 row v line label oled_only
-  for row in $ROWS; do
-    oled_only=false
-    case "$row" in color | matrix | transparent) [ "$S_STYLE" = oled ] || oled_only=true ;; esac
+  local n=1 row v line
+  [ "$DRAWN" = 0 ] || printf '\033[%sA\r\033[J' "$DRAWN" # back up, and clear rows that go away
+  for row in $(rows); do
     line=""
     for v in $(row_values "$row"); do
-      label="$(row_label "$row" "$v")"
-      if [ "$v" = "$(get_row "$row")" ]; then
-        if $oled_only; then line="$line  $(paint 1 "$label")"; else line="$line  $(paint '1;32' "$label")"; fi
-      else
-        line="$line  $(paint 2 "$label")"
+      if [ "$v" = "$(get_row "$row")" ]; then line="$line  $(paint '1;32' "$(row_label "$row" "$v")")"
+      else line="$line  $(paint 2 "$(row_label "$row" "$v")")"
       fi
     done
-    $oled_only && line="$line  $(paint 2 '(oled only)')"
-    printf '\r\033[K    %s  %s%s\n' "$(paint 1 "$n")" "$(printf '%-13s' "$(row_name "$row")")" "$line"
+    printf '    %s  %s%s\n' "$(paint 1 "$n")" "$(printf '%-13s' "$(row_name "$row")")" "$line"
     n=$((n + 1))
   done
-  printf '\r\033[K%s%s\n' "$INDENT" "$(paint 2 'press 1-6 to change, Enter to continue')"
+  printf '%s%s\n' "$INDENT" "$(paint 2 "press 1-$((n - 1)) to change, Enter to continue")"
+  DRAWN="$n"
 }
 settings_screen() {
-  local key row n
+  local row n
   if ! $FANCY; then
-    for row in $ROWS; do note "$(printf '%-13s %s' "$(row_name "$row")" "$(row_label "$row" "$(get_row "$row")")")"; done
+    for row in $(rows); do note "$(printf '%-13s %s' "$(row_name "$row")" "$(row_label "$row" "$(get_row "$row")")")"; done
     return
   fi
   draw_settings
   while :; do
-    IFS= read -rsn1 key < /dev/tty || break
-    [ -n "$key" ] || break
+    read_key
+    [ -n "$KEY" ] || break
     n=1
-    for row in $ROWS; do
-      [ "$key" = "$n" ] && cycle_row "$row"
+    for row in $(rows); do
+      [ "$KEY" = "$n" ] && cycle_row "$row"
       n=$((n + 1))
     done
-    printf '\033[7A'
     draw_settings
   done
 }
@@ -209,6 +226,7 @@ settings_screen() {
 
 section "github-cool-readme setup"
 $DRY_RUN && note "$(paint 33 'dry run: nothing will be changed')"
+$HAVE_TTY && note "$(paint 2 'Esc quits at any question')"
 
 command -v gh >/dev/null || die "the GitHub CLI (gh) is not installed" "install it from https://cli.github.com"
 command -v git >/dev/null || die "git is not installed"
@@ -272,7 +290,13 @@ elif $set_token; then
   if command -v open >/dev/null; then open "$url"; elif command -v xdg-open >/dev/null; then xdg-open "$url" >/dev/null 2>&1 || true; fi
   while :; do
     printf '%s%s ' "$INDENT" "Paste the token (hidden), then Enter:"
-    cursor on; IFS= read -r -s TOKEN < /dev/tty; cursor off; echo
+    # A key at a time, so Esc quits here too; Backspace works, nothing is shown.
+    TOKEN=""
+    cursor on
+    while read_key && [ -n "$KEY" ]; do
+      case "$KEY" in $'\177' | $'\b') TOKEN="${TOKEN%?}" ;; *) TOKEN="$TOKEN$KEY" ;; esac
+    done
+    cursor off; echo
     [ -n "$TOKEN" ] || continue
     headers="$(curl -sS -o /dev/null -D - -H "Authorization: token $TOKEN" https://api.github.com/user | tr -d '\r')"
     status="$(printf '%s\n' "$headers" | awk 'NR==1{print $2}')"
@@ -355,12 +379,12 @@ if $FANCY; then
   hint="press 1-4 to turn a card on or off, Enter to continue"
   while :; do
     draw_cards "$hint"
-    IFS= read -rsn1 key < /dev/tty || break
-    [ -n "$key" ] || break
+    read_key
+    [ -n "$KEY" ] || break
     hint="press 1-4 to turn a card on or off, Enter to continue"
     n=1
     for card in $CARD_NAMES; do
-      if [ "$key" = "$n" ]; then
+      if [ "$KEY" = "$n" ]; then
         if ! card_on "$card"; then S_CARDS="$(in_order "$S_CARDS $card")"
         elif [ "$S_CARDS" = "$card" ]; then hint="at least one card stays on"
         else S_CARDS="$(in_order "$(printf ' %s ' "$S_CARDS" | sed "s/ $card / /")")"
@@ -398,9 +422,11 @@ if [ -f "$CONFIG" ]; then
   change include.private "${cur_private:-true}" "$S_PRIVATE" "private repos"
   change include.orgs "${cur_orgs:-true}" "$S_ORGS" "org repos"
   change style "${cur_style:-classic}" "$S_STYLE" style
-  change color "${cur_color:-amber}" "$S_COLOR" colour
-  change matrix "${cur_matrix:-true}" "$S_MATRIX" dots
-  change transparent "${cur_transparent:-false}" "$S_TRANSPARENT" background
+  if [ "$S_STYLE" = oled ]; then # with classic these rows were hidden, so they keep their values
+    change color "${cur_color:-amber}" "$S_COLOR" colour
+    change matrix "${cur_matrix:-true}" "$S_MATRIX" dots
+    change transparent "${cur_transparent:-false}" "$S_TRANSPARENT" background
+  fi
   if [ "$S_CARDS" != "${cur_cards:-$CARD_NAMES}" ]; then
     cards_set "$CONFIG" "$S_CARDS"
     changes="${changes:+$changes, }cards: $(printf '%s' "$S_CARDS" | sed 's/ /, /g')"

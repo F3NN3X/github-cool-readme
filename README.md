@@ -23,7 +23,7 @@ Repos you can no longer access (e.g. a former employer's) can't be counted.
 With [gh](https://cli.github.com) logged in, run:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/pedrocatalao/github-cool-readme/main/setup.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/pedrocatalao/github-cool-readme/v1/setup.sh)
 ```
 
 It asks before each change (`--dry-run` changes nothing), and does the steps below. To do them by hand:

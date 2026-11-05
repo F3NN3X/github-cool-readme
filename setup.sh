@@ -2,7 +2,7 @@
 # Wires github-cool-readme into your profile repo (<you>/<you>): token secret, workflow,
 # settings, first run, README. Safe to run again; it asks before changing anything.
 #
-#   bash <(curl -fsSL https://raw.githubusercontent.com/pedrocatalao/github-cool-readme/main/setup.sh)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/pedrocatalao/github-cool-readme/v1/setup.sh)
 #
 # Options: --dry-run  show what would happen, change nothing
 # Needs: gh (logged in) and git. Works with the bash that ships with macOS.
@@ -10,7 +10,7 @@
 set -euo pipefail
 
 TOOL_REPO="pedrocatalao/github-cool-readme"
-REF="${COOL_README_REF:-main}"   # the version of the action the workflow uses
+REF="${COOL_README_REF:-v1}"   # the version of the action the workflow uses
 WORKFLOW=".github/workflows/cool-readme.yml"
 CONFIG="cool-readme.yml"
 OUT="stats"
@@ -152,7 +152,7 @@ cd "$WORK/repo"
 
 wanted="$(mktemp)"
 gh api "repos/$TOOL_REPO/contents/examples/profile-workflow.yml?ref=$REF" -H "Accept: application/vnd.github.raw" \
-  | sed "s#$TOOL_REPO@main#$TOOL_REPO@$REF#" > "$wanted"
+  | sed "s#$TOOL_REPO@[A-Za-z0-9._-]*#$TOOL_REPO@$REF#" > "$wanted"
 mkdir -p "$(dirname "$WORKFLOW")"
 if [ ! -f "$WORKFLOW" ]; then
   cp "$wanted" "$WORKFLOW"

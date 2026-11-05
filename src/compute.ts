@@ -1,5 +1,5 @@
-import { repoKey, type Config } from './config.ts';
-import { pullStats, streakStats } from './stats.ts';
+import { ACTIVITY_DAYS, repoKey, type Config } from './config.ts';
+import { commitTypes, pullStats, streakStats } from './stats.ts';
 import type { ContributionWindow, Snapshot } from './types.ts';
 
 export type CountKey = 'commits' | 'pullRequests' | 'reviews' | 'issues';
@@ -62,6 +62,32 @@ export interface GlanceItem {
   value: number | string;
 }
 
+export interface TelemetryModel {
+  /** Contributions per day, the last 7 days. */
+  perDay: number;
+  /** The busiest 7 days of the last 12 months, per day. */
+  peakPerDay: number;
+  /** Contributions per day, the last ACTIVITY_DAYS days, oldest first. */
+  days: number[];
+  /** Your public repos with commits in the last ACTIVITY_DAYS days, of how many. */
+  activeRepos: number;
+  publicRepos: number;
+  updated: string;
+}
+
+export interface NowModel {
+  repo: string;
+  description: string | null;
+  language: { name: string; color: string | null } | null;
+  stars: number;
+  release: string | null;
+  commits: number;
+  message: string | null;
+  date: string | null;
+  /** Your commits per day, the last ACTIVITY_DAYS days, oldest first. */
+  days: number[];
+}
+
 export interface ReleaseItem {
   repo: string;
   tag: string;
@@ -89,6 +115,9 @@ export interface Model {
   downloads: DownloadsModel;
   streaks: GlanceItem[];
   pulls: GlanceItem[];
+  telemetry: TelemetryModel;
+  now: NowModel | null;
+  types: LanguageItem[];
   /** Things the user should know, e.g. config entries that matched nothing. */
   notes: string[];
 }
@@ -356,5 +385,38 @@ export function compute(snapshot: Snapshot, config: Config): Model {
   const streaks = streakStats(snapshot.allDays);
   const pulls = pullStats(snapshot.pullRequests.filter((pr) => included(pr.repo)));
 
-  return { summary, languages, contributions, weekly, projects, activity, years, glance, releases, downloads, streaks, pulls, notes };
+  // Telemetry: the calendar's last days, against your busiest week of the last 12 months.
+  const counts7 = snapshot.calendar.map((_, i, all) => all.slice(Math.max(0, i - 6), i + 1).reduce((s, d) => s + d.count, 0) / 7);
+  const telemetry: TelemetryModel = {
+    perDay: counts7.at(-1) ?? 0,
+    peakPerDay: Math.max(0, ...counts7),
+    days: snapshot.calendar.slice(-ACTIVITY_DAYS).map((d) => d.count),
+    activeRepos: publicRepos.filter((r) => r.recentCommits > 0).length,
+    publicRepos: publicRepos.length,
+    updated: snapshot.generatedAt,
+  };
+
+  const focus = snapshot.focus;
+  const focusRepo = focus && publicRepos.find((r) => r.nameWithOwner === focus.nameWithOwner);
+  const now: NowModel | null = focus && focusRepo
+    ? {
+        repo: repoName(focusRepo.nameWithOwner),
+        description: focusRepo.description ? clean(focusRepo.description) : null,
+        language: focusRepo.language,
+        stars: focusRepo.stars,
+        release: focusRepo.releases[0] ? clean(focusRepo.releases[0].tag) : null,
+        commits: focusRepo.recentCommits,
+        message: focusRepo.lastCommit ? clean(focusRepo.lastCommit.message) : null,
+        date: focusRepo.lastCommit?.date ?? null,
+        days: Array.from({ length: ACTIVITY_DAYS }, (_, i) => {
+          const end = Date.parse(snapshot.generatedAt) - (ACTIVITY_DAYS - 1 - i) * 864e5;
+          const day = new Date(end).toISOString().slice(0, 10);
+          return focus.commitDates.filter((d) => d.startsWith(day)).length;
+        }),
+      }
+    : null;
+
+  const types = commitTypes(snapshot.commitSubjects);
+
+  return { summary, languages, contributions, weekly, projects, activity, years, glance, releases, downloads, streaks, pulls, telemetry, now, types, notes };
 }

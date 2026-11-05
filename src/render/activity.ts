@@ -39,7 +39,7 @@ export function renderActivity(items: ActivityItem[], theme: Theme, config: Conf
     })
     .join('\n');
 
-  const list = scrollingRows(rows, items.length, WIDTH, config);
+  const list = scrollingRows(rows, items.length, WIDTH, config, 'activity');
   return card({
     width: WIDTH,
     height: CARD_HEIGHT,

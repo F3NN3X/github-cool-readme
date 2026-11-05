@@ -39,7 +39,7 @@ export function renderProjects(items: ProjectItem[], theme: Theme, config: Confi
     })
     .join('\n');
 
-  const list = scrollingRows(rows, items.length, WIDTH, config);
+  const list = scrollingRows(rows, items.length, WIDTH, config, 'projects');
   return card({
     width: WIDTH,
     height: CARD_HEIGHT,

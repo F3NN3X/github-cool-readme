@@ -127,6 +127,11 @@ More classic cards, left out unless you list them in `cards`. There are no OLED 
 - **Downloads** (`downloads`, 450): release downloads per public repo, and the total. Updater metadata and checksums aren't counted.
 - **Streaks** (`streaks`, 350): current and longest streak, active days, and your best day and month, from your whole contribution history.
 - **Pull requests** (`pulls`, 350): opened, merged, merge rate, median time to merge, open now and closed unmerged.
+- **Telemetry** (`telemetry`, 800, a whole row): gauges for contributions per day and active days, and active public repos, with the last 30 days as a line.
+- **Now building** (`now`, 800, a whole row): your public repo with the most recent commits, or the one in `now.repo`, with commits per day.
+- **Commit types** (`types`, 350): the share of each conventional commit type, from your latest 100 commits per public repo.
+
+Cards that scroll take turns, in the order of `cards`, so that only one moves at a time.
 
 ```yaml
 cards: [summary, languages, projects, glance, releases, streaks, downloads, pulls, activity, years, contributions, weekly]
@@ -233,6 +238,13 @@ streaks:
   title: Streaks
 pulls:
   title: Pull requests
+telemetry:
+  title: Telemetry
+now:
+  title: Now building
+  repo: null            # "repo"; by default the public repo with the most recent commits
+types:
+  title: Commit types
 ```
 
 `theme.background`, `theme.border` and `summary.title` apply to the classic cards only. Unknown settings are an error, so typos don't go unnoticed.

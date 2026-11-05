@@ -56,7 +56,7 @@ export function fixture(): Snapshot {
   };
   const dec2025 = { 'octo/game': { commits: 10, pullRequests: 1 } };
   return {
-    version: 6,
+    version: 7,
     generatedAt: '2026-11-04T12:00:00Z',
     user: { login: 'octo', name: 'Octo', createdAt: '2015-03-01T00:00:00Z' },
     orgs: ['acme'],
@@ -148,6 +148,8 @@ export function fixture(): Snapshot {
       { date: '2026-02-28', count: 3 },
       { date: '2026-03-01', count: 0 },
     ],
+    commitSubjects: ['feat: a', 'feat(ui): b', 'fix!: c', 'docs: d', 'Merge pull request #1', 'Update things'],
+    focus: { nameWithOwner: 'octo/game', commitDates: ['2026-11-04T09:00:00Z', '2026-11-04T10:00:00Z', '2026-11-02T10:00:00Z'] },
     avatars: { big: 'data:image/png;base64,AAAA' },
   };
 }

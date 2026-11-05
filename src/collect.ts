@@ -144,6 +144,17 @@ query($login: String!, $after: String, $id: ID!, $since: GitTimestamp!) {
   }
 }`;
 
+const FOCUS_QUERY = `
+query($owner: String!, $name: String!, $after: String, $id: ID!, $since: GitTimestamp!) {
+  repository(owner: $owner, name: $name) {
+    defaultBranchRef { target { ... on Commit {
+      history(first: 100, after: $after, since: $since, author: { id: $id }) {
+        pageInfo { hasNextPage endCursor } nodes { committedDate }
+      }
+    } } }
+  }
+}`;
+
 const DAY = 24 * 60 * 60 * 1000;
 
 /** The last 365 days, today included. */
@@ -360,7 +371,7 @@ export async function collect(client: Client, config: Config, log: (msg: string)
 
   // Your public repos, with your latest commit: only the cards that show them need this.
   const publicRepos: PublicRepo[] = [];
-  if (config.cards.some((card) => ['projects', 'activity', 'releases', 'downloads'].includes(card))) {
+  if (config.cards.some((card) => ['projects', 'activity', 'releases', 'downloads', 'telemetry', 'now', 'types'].includes(card))) {
     const commitsSince = new Date(now.getTime() - ACTIVITY_DAYS * DAY).toISOString();
     for (let after: string | null = null; ; ) {
       const res: { user: { repositories: { pageInfo: PageInfo; nodes: RawPublicRepo[] } } } = await client.query(PUBLIC_REPOS_QUERY, {
@@ -397,6 +408,48 @@ export async function collect(client: Client, config: Config, log: (msg: string)
     log(`${publicRepos.length} public repositories`);
   }
 
+  // A sample for the types card: your latest 100 commits per public repo in the last 12 months.
+  const commitSubjects: string[] = [];
+  if (config.cards.includes('types')) {
+    type Subjects = { defaultBranchRef: { target: { history?: { nodes: { messageHeadline: string }[] } } | null } | null } | null;
+    const keys = publicRepos.map((r) => r.nameWithOwner.toLowerCase());
+    await inBatches(keys, 10, async (batch) => {
+      const history = `history(first: 100, since: ${JSON.stringify(since)}, author: { id: ${JSON.stringify(user.id)} }) { nodes { messageHeadline } }`;
+      const data = await client.query<Record<string, Subjects>>(
+        `query {\n${batch.map((k, i) => `r${i}: ${repoRef(k)} { defaultBranchRef { target { ... on Commit { ${history} } } } }`).join('\n')}\n}`,
+      );
+      for (const i of batch.keys()) {
+        commitSubjects.push(...(data[`r${i}`]?.defaultBranchRef?.target?.history?.nodes.map((n) => n.messageHeadline) ?? []));
+      }
+      return [];
+    });
+  }
+
+  // The repo for the now card, and every commit of yours there in the last ACTIVITY_DAYS days.
+  let focus: Snapshot['focus'] = null;
+  if (config.cards.includes('now')) {
+    const profile = `${login}/${login}`.toLowerCase();
+    const chosen = config.now.repo
+      ? publicRepos.find((r) => r.nameWithOwner.toLowerCase() === repoKey(config.now.repo!, login))
+      : publicRepos.filter((r) => r.nameWithOwner.toLowerCase() !== profile && r.recentCommits).sort((a, b) => b.recentCommits - a.recentCommits)[0];
+    if (chosen) {
+      const [owner, name] = chosen.nameWithOwner.split('/');
+      const commitDates: string[] = [];
+      for (let after: string | null = null; ; ) {
+        const res: {
+          repository: { defaultBranchRef: { target: { history?: { pageInfo: PageInfo; nodes: { committedDate: string }[] } } | null } | null } | null;
+        } = await client.query(FOCUS_QUERY, {
+          owner, name, after, id: user.id, since: new Date(now.getTime() - ACTIVITY_DAYS * DAY).toISOString(),
+        });
+        const history = res.repository?.defaultBranchRef?.target?.history;
+        commitDates.push(...(history?.nodes.map((n) => n.committedDate) ?? []));
+        if (!history?.pageInfo.hasNextPage) break;
+        after = history.pageInfo.endCursor;
+      }
+      focus = { nameWithOwner: chosen.nameWithOwner, commitDates };
+    }
+  }
+
   // Every day since you joined, for the streaks card: the last-12-months calendar is too short.
   const allDays: Snapshot['allDays'] = [];
   if (config.cards.includes('streaks')) {
@@ -412,7 +465,7 @@ export async function collect(client: Client, config: Config, log: (msg: string)
   for (const w of client.warnings) log(`warning: ${w}`);
 
   return {
-    version: 6,
+    version: 7,
     generatedAt: now.toISOString(),
     user: { login, name: user.name, createdAt: user.createdAt },
     orgs,
@@ -425,6 +478,8 @@ export async function collect(client: Client, config: Config, log: (msg: string)
     pullRequests,
     publicRepos,
     allDays,
+    commitSubjects,
+    focus,
     avatars,
   };
 }

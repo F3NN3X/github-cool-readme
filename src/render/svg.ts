@@ -48,6 +48,7 @@ export const THEMES: Record<Mode, Theme> = {
 // column names) at HEADER_Y, with the content starting at CONTENT_TOP.
 export const WIDE = 450;
 export const NARROW = 350;
+export const FULL = 800; // a whole row of the README
 export const CARD_HEIGHT = 195;
 export const PAD = 20;
 export const HEADER_Y = 28;

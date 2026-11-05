@@ -35,7 +35,7 @@ export function renderDownloads(m: DownloadsModel, theme: Theme, config: Config)
     })
     .join('\n');
 
-  const list = scrollingRows(rows, m.items.length, WIDTH, config);
+  const list = scrollingRows(rows, m.items.length, WIDTH, config, 'downloads');
   return card({
     width: WIDTH,
     height: CARD_HEIGHT,

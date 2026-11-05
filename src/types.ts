@@ -69,7 +69,7 @@ export interface PublicRepo {
 }
 
 export interface Snapshot {
-  version: 6;
+  version: 7;
   generatedAt: string;
   user: { login: string; name: string | null; createdAt: string };
   /** Organizations the user belongs to (lowercase logins). */
@@ -91,6 +91,10 @@ export interface Snapshot {
   publicRepos: PublicRepo[];
   /** The contribution calendar since you joined; empty unless the streaks card is on. */
   allDays: { date: string; count: number }[];
+  /** Subjects of your recent commits to public repos; empty unless the types card is on. */
+  commitSubjects: string[];
+  /** The repo for the now card, with your commits there in the last ACTIVITY_DAYS days. */
+  focus: { nameWithOwner: string; commitDates: string[] } | null;
   /** Owner login (lowercase) -> data: URI of the avatar. */
   avatars: Record<string, string>;
 }

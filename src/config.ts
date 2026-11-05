@@ -1,13 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 
-export const CARDS = ['summary', 'languages', 'contributions', 'weekly', 'projects', 'glance', 'releases', 'streaks', 'downloads', 'pulls', 'activity', 'years'] as const;
+export const CARDS = ['summary', 'languages', 'contributions', 'weekly', 'projects', 'glance', 'releases', 'streaks', 'downloads', 'pulls', 'activity', 'years', 'telemetry', 'now', 'types'] as const;
 export type Card = (typeof CARDS)[number];
 
 /** The cards made when the settings don't say. */
 export const DEFAULT_CARDS: Card[] = ['summary', 'languages', 'contributions', 'weekly'];
 /** These have no OLED version. */
-export const CLASSIC_ONLY_CARDS: Card[] = ['projects', 'glance', 'releases', 'streaks', 'downloads', 'pulls', 'activity', 'years'];
+export const CLASSIC_ONLY_CARDS: Card[] = ['projects', 'glance', 'releases', 'streaks', 'downloads', 'pulls', 'activity', 'years', 'telemetry', 'now', 'types'];
+/** The list cards that scroll, each taking its own turn. */
+export const SCROLLING_CARDS: Card[] = ['contributions', 'projects', 'releases', 'downloads', 'activity'];
 /** How far back the activity card looks. */
 export const ACTIVITY_DAYS = 30;
 
@@ -109,6 +111,17 @@ export interface Config {
   pulls: {
     title: string | null;
   };
+  telemetry: {
+    title: string | null;
+  };
+  now: {
+    title: string | null;
+    /** The repo to show; by default, your public repo with the most recent commits. */
+    repo: string | null;
+  };
+  types: {
+    title: string | null;
+  };
 }
 
 export const DEFAULT_CONFIG: Config = {
@@ -132,6 +145,9 @@ export const DEFAULT_CONFIG: Config = {
   downloads: { title: 'Downloads', count: 6, hide: [] },
   streaks: { title: 'Streaks' },
   pulls: { title: 'Pull requests' },
+  telemetry: { title: 'Telemetry' },
+  now: { title: 'Now building', repo: null },
+  types: { title: 'Commit types' },
 };
 
 export class ConfigError extends Error {}
@@ -166,6 +182,9 @@ const SHAPE: Shape = {
   downloads: { title: 'string?', count: 'number', hide: 'string[]' },
   streaks: { title: 'string?' },
   pulls: { title: 'string?' },
+  telemetry: { title: 'string?' },
+  now: { title: 'string?', repo: 'string?' },
+  types: { title: 'string?' },
 };
 
 function check(value: unknown, shape: Shape, path: string): void {

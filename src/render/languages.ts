@@ -11,15 +11,19 @@ const LEGEND_ROW = 32;
 const pct = (p: number) => `${p < 0.1 ? '<0.1' : p.toFixed(1)}%`;
 
 export function renderLanguages(items: LanguageItem[], theme: Theme, config: Config): string {
-  const title = config.languages.title;
+  return shareCard(config.languages.title, 'Most used languages', 'No language data yet', items, theme, config);
+}
+
+/** A bar split by share, with a legend of two columns. */
+export function shareCard(title: string | null, fallback: string, empty: string, items: LanguageItem[], theme: Theme, config: Config): string {
   const header = title ? headerText(title, PAD) : '';
   const barWidth = WIDTH - 2 * PAD;
   const colorOf = (l: LanguageItem) => l.color ?? theme.neutral;
 
   if (!items.length) {
     return card({
-      width: WIDTH, height: CARD_HEIGHT, title: title ?? 'Languages', desc: 'No language data.', theme, config,
-      body: header + `<text x="${PAD}" y="${CONTENT_TOP + 14}" class="label muted">No language data yet</text>`,
+      width: WIDTH, height: CARD_HEIGHT, title: title ?? fallback, desc: `${empty}.`, theme, config,
+      body: header + `<text x="${PAD}" y="${CONTENT_TOP + 14}" class="label muted">${esc(empty)}</text>`,
     });
   }
 
@@ -63,7 +67,7 @@ export function renderLanguages(items: LanguageItem[], theme: Theme, config: Con
   return card({
     width: WIDTH,
     height: Math.max(CARD_HEIGHT, LEGEND_TOP + (rows - 1) * LEGEND_ROW + 26),
-    title: title ?? 'Most used languages',
+    title: title ?? fallback,
     desc: items.map((l) => `${l.name} ${pct(l.percent)}`).join(', '),
     theme,
     config,

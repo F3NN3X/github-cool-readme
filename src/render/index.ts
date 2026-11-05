@@ -9,10 +9,12 @@ import { renderActivity } from './activity.ts';
 import { renderContributions } from './contributions.ts';
 import { renderDownloads } from './downloads.ts';
 import { renderGlance, tileCard } from './glance.ts';
-import { renderLanguages } from './languages.ts';
+import { renderLanguages, shareCard } from './languages.ts';
+import { renderNow } from './now.ts';
 import { renderProjects } from './projects.ts';
 import { renderReleases } from './releases.ts';
 import { renderSummary } from './summary.ts';
+import { renderTelemetry } from './telemetry.ts';
 import { THEMES, type Mode } from './svg.ts';
 import { renderWeekly } from './weekly.ts';
 import { renderYears } from './years.ts';
@@ -48,6 +50,9 @@ export function renderAll(model: Model, config: Config): Record<string, string> 
         downloads: () => renderDownloads(model.downloads, theme, config),
         streaks: () => tileCard(config.streaks.title, 'Streaks', model.streaks, theme, config),
         pulls: () => tileCard(config.pulls.title, 'Pull requests', model.pulls, theme, config),
+        telemetry: () => renderTelemetry(model.telemetry, theme, config),
+        now: () => renderNow(model.now, theme, config),
+        types: () => shareCard(config.types.title, 'Commit types', 'No commit data yet', model.types, theme, config),
       };
     }
     for (const card of CARDS) if (config.cards.includes(card)) files[`${card}-${mode}.svg`] = render[card]!();
@@ -59,5 +64,5 @@ export function renderAll(model: Model, config: Config): Record<string, string> 
 export function cardWidths(config: Config): Record<string, number> {
   return config.style === 'oled'
     ? { summary: 400, languages: 400, contributions: 400, weekly: 400 }
-    : { summary: 450, languages: 350, contributions: 450, weekly: 350, projects: 450, glance: 350, releases: 450, streaks: 350, downloads: 450, pulls: 350, activity: 450, years: 350 };
+    : { summary: 450, languages: 350, contributions: 450, weekly: 350, projects: 450, glance: 350, releases: 450, streaks: 350, downloads: 450, pulls: 350, activity: 450, years: 350, telemetry: 800, now: 800, types: 350 };
 }

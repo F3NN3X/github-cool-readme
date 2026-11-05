@@ -34,7 +34,7 @@ export function renderReleases(items: ReleaseItem[], theme: Theme, config: Confi
     })
     .join('\n');
 
-  const list = scrollingRows(rows, items.length, WIDTH, config);
+  const list = scrollingRows(rows, items.length, WIDTH, config, 'releases');
   return card({
     width: WIDTH,
     height: CARD_HEIGHT,

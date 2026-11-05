@@ -1,4 +1,4 @@
-import type { Config } from '../config.ts';
+import { SCROLLING_CARDS, type Card, type Config } from '../config.ts';
 import type { ContributionItem } from '../compute.ts';
 import { icon } from './icons.ts';
 import {
@@ -10,8 +10,9 @@ const VISIBLE = 3; // rows in view; more scroll past in a loop
 export const ROW = 46;
 const AVATAR = 30;
 export const TOP = CONTENT_TOP - 2;
-const HOLD = 3.5; // seconds each page stays in view
+const HOLD = 9.2; // seconds each page stays in view
 const MOVE = 0.8; // seconds to scroll to the next page
+const TURN = 2; // seconds between one card's scroll and the next card's, so only one moves at a time
 
 export function describe(i: ContributionItem): string {
   const parts: string[] = [];
@@ -41,13 +42,14 @@ function scrollKeyframes(offsets: number[]): { css: string; seconds: number } {
 
 /**
  * Only VISIBLE rows fit; with more, they scroll up a page at a time, then back to the top.
- * `rows` are placed at TOP + i * ROW.
+ * `rows` are placed at TOP + i * ROW. Each card takes its own turn, by its place in the settings.
  */
-export function scrollingRows(rows: string, count: number, width: number, config: Config): { css: string; body: string } {
+export function scrollingRows(rows: string, count: number, width: number, config: Config, cardName: Card): { css: string; body: string } {
   const scrolls = count > VISIBLE && config.theme.animations;
   const keyframes = scrolls ? scrollKeyframes(pageOffsets(count)) : null;
+  const turn = Math.max(0, config.cards.filter((c) => SCROLLING_CARDS.includes(c)).indexOf(cardName)) * TURN;
   return {
-    css: keyframes ? `\n  .scroll { animation: scroll ${keyframes.seconds}s ease-in-out infinite; }${keyframes.css}` : '',
+    css: keyframes ? `\n  .scroll { animation: scroll ${keyframes.seconds}s ease-in-out ${turn}s infinite; }${keyframes.css}` : '',
     body:
       `<clipPath id="rows"><rect x="0" y="${TOP - 4}" width="${width}" height="${VISIBLE * ROW}"/></clipPath>` +
       `<g clip-path="url(#rows)"><g${scrolls ? ' class="scroll"' : ''}>\n${rows}\n</g></g>`,
@@ -99,7 +101,7 @@ export function renderContributions(items: ContributionItem[], theme: Theme, con
     })
     .join('\n');
 
-  const list = scrollingRows(rows, items.length, WIDTH, config);
+  const list = scrollingRows(rows, items.length, WIDTH, config, 'contributions');
 
   return card({
     width: WIDTH,

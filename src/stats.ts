@@ -1,4 +1,5 @@
 import { formatDay, formatMonth, formatNumber, plural } from './render/svg.ts';
+import type { LanguageItem } from './compute.ts';
 import type { PullRequest, Snapshot } from './types.ts';
 
 type Tile = { label: string; value: number | string };
@@ -61,6 +62,31 @@ export function streakStats(days: Snapshot['allDays']): Tile[] {
     { label: 'Average on active days', value: active.length ? formatNumber(total / active.length) : 0 },
     { label: best ? `Best day · ${formatDay(best.date)}, ${best.date.slice(0, 4)}` : 'Best day', value: best?.count ?? 0 },
     { label: bestMonth ? `Best month · ${formatMonth(`${bestMonth[0]}-01`)}` : 'Best month', value: bestMonth?.[1] ?? 0 },
+  ];
+}
+
+const TYPE_COLORS: Record<string, string> = {
+  feat: '#2da44e', fix: '#cf222e', docs: '#0969da', refactor: '#8250df', test: '#bf8700',
+  chore: '#6e7781', perf: '#e16f24', ci: '#1b7c83', build: '#a475f9', style: '#bf3989',
+};
+
+const SHOWN_TYPES = 5; // the sixth place in the legend is "Other"
+
+/** The share of each conventional commit type; merges aren't counted, and the rest is "Other". */
+export function commitTypes(subjects: string[]): LanguageItem[] {
+  const counted = subjects.filter((s) => !/^merge /i.test(s));
+  const counts = new Map<string, number>();
+  for (const subject of counted) {
+    const type = subject.match(/^([a-z]+)(\([^)]*\))?!?:/i)?.[1].toLowerCase();
+    const key = type && TYPE_COLORS[type] ? type : 'other';
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  const ranked = [...counts.entries()].filter(([type]) => type !== 'other').sort((a, b) => b[1] - a[1]);
+  const shown = ranked.slice(0, SHOWN_TYPES);
+  const rest = counted.length - shown.reduce((s, [, n]) => s + n, 0);
+  return [
+    ...shown.map(([name, n]) => ({ name, color: TYPE_COLORS[name], percent: (n / counted.length) * 100 })),
+    ...(rest ? [{ name: 'Other', color: null, percent: (rest / counted.length) * 100 }] : []),
   ];
 }
 

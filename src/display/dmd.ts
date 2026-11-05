@@ -46,25 +46,47 @@ export function look(color: Color, mode: Mode): Look {
     : { lit: '#f0f6fc', accent: '#4493f8', shine: '#4493f8', dim: 0.6, panel: null, unlit: '#3d444d', unlitOpacity: 0.35, glow: false };
 }
 
-/** Lit cells as one path: each row's runs of neighbouring cells become one rectangle. */
+/**
+ * Lit cells as one path. Neighbouring cells in a row become one run, and identical runs in rows
+ * that touch become one rectangle, so a bar is a single shape: separate strips would leave faint
+ * seams where they meet when the card is shown scaled.
+ */
 export function cellsPath(cells: Cell[]): string {
   const rows = new Map<number, Set<number>>();
   for (const [c, r] of cells) {
     if (!rows.has(r)) rows.set(r, new Set());
     rows.get(r)!.add(c);
   }
-  let d = '';
-  for (const [r, set] of [...rows.entries()].sort((a, b) => a[0] - b[0])) {
-    const cols = [...set].sort((a, b) => a - b);
+  // Rectangles still growing downwards, by "first column:width".
+  const open = new Map<string, { col: number; row: number; width: number; height: number }>();
+  const done: { col: number; row: number; width: number; height: number }[] = [];
+  for (const r of [...rows.keys()].sort((a, b) => a - b)) {
+    const cols = [...rows.get(r)!].sort((a, b) => a - b);
+    const seen = new Set<string>();
     for (let i = 0; i < cols.length; ) {
       let j = i;
       while (j + 1 < cols.length && cols[j + 1] === cols[j] + 1) j++;
-      const w = (j - i + 1) * PITCH;
-      d += `M${cols[i] * PITCH} ${r * PITCH}h${w}v${PITCH}h-${w}z`;
+      const key = `${cols[i]}:${j - i + 1}`;
+      const rect = open.get(key);
+      if (rect && rect.row + rect.height === r) rect.height++;
+      else {
+        if (rect) done.push(rect);
+        open.set(key, { col: cols[i], row: r, width: j - i + 1, height: 1 });
+      }
+      seen.add(key);
       i = j + 1;
     }
+    // Runs that didn't continue into this row are finished.
+    for (const [key, rect] of open) if (!seen.has(key)) (done.push(rect), open.delete(key));
   }
-  return d;
+  done.push(...open.values());
+  done.sort((a, b) => a.row - b.row || a.col - b.col);
+  return done
+    .map((x) => {
+      const w = x.width * PITCH;
+      return `M${x.col * PITCH} ${x.row * PITCH}h${w}v${x.height * PITCH}h-${w}z`;
+    })
+    .join('');
 }
 
 export function path(cells: Cell[], fill: string, attrs = ''): string {
@@ -101,6 +123,8 @@ export interface Style {
   /** Round LED dots; otherwise the cells are drawn as solid square pixels. */
   dots: boolean;
   animations: boolean;
+  /** The look's dark panel behind the dots; false for a transparent background. */
+  panel: boolean;
 }
 
 export interface FrameOptions {
@@ -111,6 +135,7 @@ export interface FrameOptions {
   look: Look;
   dots: boolean;
   animations: boolean;
+  panel: boolean;
   css: string;
   body: string;
 }
@@ -129,7 +154,7 @@ export function frame(o: FrameOptions): string {
         `<feMerge><feMergeNode in="h"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`
       : '',
   ].join('');
-  const panel = l.panel ? `<rect x="0.5" y="0.5" width="${o.width - 1}" height="${o.height - 1}" rx="8" fill="${l.panel}"/>` : '';
+  const panel = l.panel && o.panel ? `<rect x="0.5" y="0.5" width="${o.width - 1}" height="${o.height - 1}" rx="8" fill="${l.panel}"/>` : '';
   const unlit = o.dots ? `<rect ${all} fill="${l.unlit}" fill-opacity="${l.unlitOpacity}" mask="url(#dots)"/>` : '';
   let content = o.body;
   if (o.dots) content = `<g mask="url(#dots)">${content}</g>`;

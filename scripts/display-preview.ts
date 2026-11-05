@@ -17,7 +17,7 @@ const looks: { color: Color; dots: boolean }[] = [];
 for (const color of ['amber', 'green', 'theme'] as Color[]) for (const dots of [true, false]) looks.push({ color, dots });
 
 const block = (mode: Mode, color: Color, dots: boolean) => {
-  const l: Style = { look: look(color, mode), dots, animations: true };
+  const l: Style = { look: look(color, mode), dots, animations: true, panel: true };
   const tag = `${color}-${dots ? 'dots' : 'pixels'}-${mode}`;
   const cards: [string, string, number][] = [
     ['summary', renderDisplaySummary(model.summary, l), 400],

@@ -132,8 +132,17 @@ export function slideshow(id: string, slides: Item[][], region: Region, look: Lo
       defs += groups
         .map((g, k) => `<pattern id="${P}sp${i}p${k}" width="${px(16)}" height="${px(16)}" patternUnits="userSpaceOnUse">${path(g, '#fff')}</pattern>`)
         .join('');
+      // Once all groups are on, one solid area takes over, so the groups' small squares leave no seams.
       defs += `<mask id="${P}sp${i}" ${all}>` +
-        groups.map((_, k) => `<rect class="${P}sp${i}k${k}" x="0" y="0" width="${width}" height="${height}" fill="url(#${P}sp${i}p${k})"/>`).join('') + '</mask>';
+        groups.map((_, k) => `<rect class="${P}sp${i}k${k}" x="0" y="0" width="${width}" height="${height}" fill="url(#${P}sp${i}p${k})"/>`).join('') +
+        `<rect class="${P}sp${i}all" x="0" y="0" width="${width}" height="${height}" fill="#fff"/></mask>`;
+      css += `\n  .${P}sp${i}all { animation: ${P}sp${i}all ${total}s infinite; }` + keyframes(`${P}sp${i}all`, total, [
+        { t: 0, css: 'opacity: 0;' },
+        { t: start + ENTER, css: 'opacity: 0;', ease: 'steps(1, end)' },
+        { t: start + ENTER + 0.001, css: 'opacity: 1;' },
+        { t: total - 0.001, css: 'opacity: 1;', ease: 'steps(1, end)' },
+        { t: total, css: 'opacity: 0;' },
+      ]);
       groups.forEach((_, k) => {
         css += `\n  .${P}sp${i}k${k} { animation: ${P}sp${i}k${k} ${total}s infinite; }` + keyframes(`${P}sp${i}k${k}`, total, [
           { t: 0, css: 'opacity: 0;' },

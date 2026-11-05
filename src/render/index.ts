@@ -16,7 +16,7 @@ export function renderAll(model: Model, config: Config): Record<string, string> 
   const files: Record<string, string> = {};
   for (const mode of ['light', 'dark'] as Mode[]) {
     if (config.style === 'oled') {
-      const style: Style = { look: look(config.color, mode), dots: config.matrix, animations: config.theme.animations };
+      const style: Style = { look: look(config.color, mode), dots: config.matrix, animations: config.theme.animations, panel: !config.transparent };
       files[`summary-${mode}.svg`] = renderDisplaySummary(model.summary, style);
       files[`languages-${mode}.svg`] = renderDisplayLanguages(model.languages, config.languages.title, style);
       files[`contributions-${mode}.svg`] = renderDisplayContributions(model.contributions, config.contributions.title, style);

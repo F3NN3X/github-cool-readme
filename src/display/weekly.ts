@@ -59,8 +59,18 @@ export function renderDisplayWeekly(days: WeekdayItem[], title: string | null, s
   const patterns = groups
     .map((g, k) => `<pattern id="wsp${k}" width="${16 * PITCH}" height="${16 * PITCH}" patternUnits="userSpaceOnUse">${path(g, '#fff')}</pattern>`)
     .join('');
+  // Once all groups are on, one solid area takes over: the groups' many small squares would
+  // otherwise leave faint seams where they meet when the card is shown scaled.
   const sparkle = `<mask id="wsp" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">` +
-    groups.map((_, k) => `<rect class="wsp${k}" x="0" y="0" width="${W}" height="${H}" fill="url(#wsp${k})"/>`).join('') + '</mask>';
+    groups.map((_, k) => `<rect class="wsp${k}" x="0" y="0" width="${W}" height="${H}" fill="url(#wsp${k})"/>`).join('') +
+    `<rect class="wspall" x="0" y="0" width="${W}" height="${H}" fill="#fff"/></mask>`;
+  css += `\n  .wspall { animation: wspall ${total}s infinite; }` + keyframes('wspall', total, [
+    { t: 0, css: 'opacity: 0;' },
+    { t: SPARKLE, css: 'opacity: 0;', ease: 'steps(1, end)' },
+    { t: SPARKLE + 0.001, css: 'opacity: 1;' },
+    { t: total - 0.001, css: 'opacity: 1;', ease: 'steps(1, end)' },
+    { t: total, css: 'opacity: 0;' },
+  ]);
   groups.forEach((_, k) => {
     const on = (k * SPARKLE) / GROUPS;
     css += `\n  .wsp${k} { animation: wsp${k} ${total}s infinite; }` + keyframes(`wsp${k}`, total, [

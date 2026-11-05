@@ -48,6 +48,14 @@ describe('grid', () => {
     expect(cellsPath([[0, 0], [1, 0], [2, 0], [5, 1]])).toBe('M0 0h9v3h-9zM15 3h3v3h-3z');
   });
 
+  it('draws a block of cells as one rectangle, so bars have no seams', () => {
+    const bar: [number, number][] = [];
+    for (let r = 0; r < 10; r++) for (let c = 0; c < 4; c++) bar.push([c, r]);
+    expect(cellsPath(bar)).toBe('M0 0h12v30h-12z');
+    // Rows that differ stay separate, and a run that stops and starts again is two rectangles.
+    expect(cellsPath([[0, 0], [1, 0], [0, 1], [0, 3], [1, 3]])).toBe('M0 0h6v3h-6zM0 3h3v3h-3zM0 9h6v3h-6z');
+  });
+
   it('draws a ring of cells', () => {
     const ring = ringCells(10.5, 10.5, 8, 2);
     expect(ring.length).toBeGreaterThan(50);
@@ -126,6 +134,14 @@ describe('oled cards', () => {
     assertWellFormed(logo);
   });
 
+  it('can leave out the dark panel for a transparent background', () => {
+    const panel = display()['summary-dark.svg'];
+    const clear = display((c) => (c.transparent = true))['summary-dark.svg'];
+    expect(panel).toContain('fill="#0d0b07"'); // the amber panel
+    expect(clear).not.toContain('fill="#0d0b07"');
+    expect(clear).toContain('mask="url(#dots)"'); // still LEDs, now on whatever is behind
+  });
+
   it('drops every animation when they are off', () => {
     for (const svg of Object.values(display((c) => (c.theme.animations = false)))) expect(svg).not.toContain('@keyframes');
   });
@@ -137,7 +153,7 @@ describe('oled cards', () => {
   });
 
   it('shows an empty contributions card', () => {
-    expect(renderDisplayContributions([], 'Notable contributions', { look: look('green', 'dark'), dots: true, animations: true })).toContain('No contributions');
+    expect(renderDisplayContributions([], 'Notable contributions', { look: look('green', 'dark'), dots: true, animations: true, panel: true })).toContain('No contributions');
   });
 
   it('is shown at 400 wide so two fit a row', () => {

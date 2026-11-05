@@ -10,6 +10,8 @@ export interface Config {
   matrix: boolean;
   /** oled only: theme uses GitHub's colours and follows the viewer's light or dark theme. */
   color: 'amber' | 'green' | 'theme';
+  /** oled only: no dark panel behind the dots, so the page shows through. */
+  transparent: boolean;
   include: {
     /** Count private repositories in the summary and languages cards. */
     private: boolean;
@@ -57,6 +59,7 @@ export const DEFAULT_CONFIG: Config = {
   style: 'classic',
   matrix: true,
   color: 'amber',
+  transparent: false,
   include: { private: true, orgs: true },
   theme: { background: 'transparent', border: false, animations: true },
   summary: { title: null, ring: 'percent' },
@@ -74,6 +77,7 @@ const SHAPE: Shape = {
   style: 'string',
   matrix: 'boolean',
   color: 'string',
+  transparent: 'boolean',
   include: { private: 'boolean', orgs: 'boolean' },
   theme: { background: 'string', border: 'boolean', animations: 'boolean' },
   summary: { title: 'string?', ring: 'string' },

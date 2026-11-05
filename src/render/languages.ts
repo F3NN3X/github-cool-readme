@@ -3,12 +3,13 @@ import type { LanguageItem } from '../compute.ts';
 import { card, esc, fadeIn, truncate, type Theme } from './svg.ts';
 
 const WIDTH = 350;
-const PAD = 18;
-const BAR_Y = 18;
+// Spacing as on the old github-readme-stats compact card.
+const PAD = 25;
+const BAR_Y = 25;
 const BAR_H = 8;
 const GAP = 2;
-const LEGEND_TOP = 46;
-const LEGEND_ROW = 22;
+const LEGEND_TOP = 50;
+const LEGEND_ROW = 25;
 
 const pct = (p: number) => `${p < 0.1 ? '<0.1' : p.toFixed(1)}%`;
 
@@ -44,14 +45,15 @@ export function renderLanguages(items: LanguageItem[], theme: Theme, config: Con
     .map((l, i) => {
       const col = i % 2;
       const row = Math.floor(i / 2);
-      const name = truncate(l.name, colWidth - 70, 12);
+      // The percentage follows the name, as on the old card.
+      const name = truncate(l.name, colWidth - 64, 12);
       return fadeIn(
         PAD + col * colWidth,
         LEGEND_TOP + row * LEGEND_ROW,
         i,
-        `<circle cx="5" cy="5" r="5" fill="${colorOf(l)}"/>` +
-          `<text x="16" y="9.5" class="label" style="font-size: 12px;">${esc(name)}</text>` +
-          `<text x="${colWidth - 12}" y="9.5" class="value secondary" style="font-size: 12px; font-weight: 400;" text-anchor="end">${pct(l.percent)}</text>`,
+        `<circle cx="5" cy="6" r="5" fill="${colorOf(l)}"/>` +
+          `<text x="16" y="10.5" class="label" style="font-size: 12px;">${esc(name)} ` +
+          `<tspan class="secondary">${pct(l.percent)}</tspan></text>`,
         config,
         70,
       );
@@ -61,7 +63,7 @@ export function renderLanguages(items: LanguageItem[], theme: Theme, config: Con
   const rows = Math.ceil(items.length / 2);
   return card({
     width: WIDTH,
-    height: LEGEND_TOP + rows * LEGEND_ROW + 4,
+    height: LEGEND_TOP + rows * LEGEND_ROW + 8,
     title: 'Most used languages',
     desc: items.map((l) => `${l.name} ${pct(l.percent)}`).join(', '),
     theme,

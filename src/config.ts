@@ -18,6 +18,8 @@ export interface Config {
   };
   summary: {
     title: string | null;
+    /** What sits inside the activity ring: the percentage, or the GitHub logo (the percentage moves below). */
+    ring: 'percent' | 'github';
   };
   languages: {
     count: number;
@@ -41,7 +43,7 @@ export const DEFAULT_CONFIG: Config = {
   user: null,
   include: { private: true, orgs: true },
   theme: { background: 'transparent', border: false, animations: true },
-  summary: { title: null },
+  summary: { title: null, ring: 'percent' },
   languages: { count: 6, exclude: [], excludeRepos: [], repoWeights: {}, other: true },
   contributions: { count: 6, includeOpen: true, pin: [], hide: [] },
 };
@@ -54,7 +56,7 @@ const SHAPE: Shape = {
   user: 'string?',
   include: { private: 'boolean', orgs: 'boolean' },
   theme: { background: 'string', border: 'boolean', animations: 'boolean' },
-  summary: { title: 'string?' },
+  summary: { title: 'string?', ring: 'string' },
   languages: {
     count: 'number',
     exclude: 'string[]',
@@ -118,6 +120,9 @@ export function parseConfig(text: string): Config {
   const config = merge(DEFAULT_CONFIG, raw);
   if (config.theme.background !== 'transparent' && config.theme.background !== 'solid') {
     throw new ConfigError('"theme.background" must be "transparent" or "solid"');
+  }
+  if (config.summary.ring !== 'percent' && config.summary.ring !== 'github') {
+    throw new ConfigError('"summary.ring" must be "percent" or "github"');
   }
   return config;
 }

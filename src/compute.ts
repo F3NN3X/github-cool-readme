@@ -5,6 +5,7 @@ export type CountKey = 'commits' | 'pullRequests' | 'reviews' | 'issues';
 
 export interface SummaryModel {
   title: string | null;
+  ring: Config['summary']['ring'];
   rows: { key: CountKey; label: string; last12Months: number; allTime: number }[];
   /** Stars received in the last 12 months, and the current total. */
   stars: { last12Months: number; allTime: number };
@@ -89,6 +90,7 @@ export function compute(snapshot: Snapshot, config: Config): Model {
 
   const summary: SummaryModel = {
     title: config.summary.title,
+    ring: config.summary.ring,
     rows: (Object.keys(ROW_LABELS) as CountKey[]).map((key) => ({
       key,
       label: ROW_LABELS[key],

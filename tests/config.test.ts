@@ -21,6 +21,7 @@ describe('config', () => {
     expect(() => parseConfig('languages:\n  count: six\n')).toThrow('"languages.count" must be a positive whole number');
     expect(() => parseConfig('languages:\n  repoWeights:\n    a: -1\n')).toThrow('repoWeights');
     expect(() => parseConfig('theme:\n  background: pink\n')).toThrow('theme.background');
+    expect(() => parseConfig('summary:\n  ring: octocat\n')).toThrow('"summary.ring" must be "percent" or "github"');
   });
 
   it('resolves repo references', () => {

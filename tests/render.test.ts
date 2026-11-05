@@ -51,6 +51,14 @@ describe('cards', () => {
     for (const n of ['160', '350', '23', '123', '60%']) expect(svg).toContain(`>${n}<`);
   });
 
+  it('can put the GitHub logo in the ring and the percentage below it', () => {
+    const svg = render((c) => (c.summary.ring = 'github'))['summary-dark.svg'];
+    expect(svg).toContain('class="logo"');
+    expect(svg).toContain('>60% ACTIVE DAYS<');
+    expect(svg).not.toContain('>60%<');
+    assertWellFormed(svg);
+  });
+
   it('drops all animation when disabled', () => {
     for (const svg of Object.values(render((c) => (c.theme.animations = false)))) {
       expect(svg).not.toContain('@keyframes');

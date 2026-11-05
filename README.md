@@ -55,6 +55,7 @@ theme:
   animations: true
 summary:
   title: null
+  ring: percent         # or github: the GitHub logo in the ring, the percentage below it
 languages:
   count: 6
   exclude: []           # language names; their share is dropped

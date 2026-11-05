@@ -1,5 +1,8 @@
 name: Cool README cards
-description: Generates animated SVG stat cards for a GitHub profile README
+description: Animated SVG stat cards for your GitHub profile README, counting private and organization work
+branding:
+  icon: bar-chart-2
+  color: green
 inputs:
   token:
     description: Classic personal access token with the repo, read:org and read:user scopes
